@@ -1,3 +1,5 @@
+import 'dart:developer' as developer;
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:storypilot/firebase_options.dart';
 
@@ -7,7 +9,12 @@ Future<void> initializeFirebase() async {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
-  } catch (_) {
-    // Firebase not configured — Ask falls back to stub.
+  } catch (error, stackTrace) {
+    developer.log(
+      'Firebase init failed — Ask will fall back to stub',
+      name: 'FirebaseInit',
+      error: error,
+      stackTrace: stackTrace,
+    );
   }
 }

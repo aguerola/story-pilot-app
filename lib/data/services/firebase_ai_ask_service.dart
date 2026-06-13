@@ -1,3 +1,5 @@
+import 'dart:developer' as developer;
+
 import 'package:firebase_ai/firebase_ai.dart';
 import 'package:storypilot/data/services/ask_service.dart';
 import 'package:storypilot/data/services/local_stub_ask_service.dart';
@@ -46,6 +48,10 @@ Reglas estrictas:
 
       final text = response.text?.trim();
       if (text == null || text.isEmpty) {
+        developer.log(
+          'Gemini returned empty text (promptFeedback: ${response.promptFeedback})',
+          name: 'FirebaseAiAskService',
+        );
         return const Error(ServerFailure('Empty response from Gemini'));
       }
 
@@ -63,7 +69,13 @@ Reglas estrictas:
           modelId: modelId,
         ),
       );
-    } catch (_) {
+    } catch (error, stackTrace) {
+      developer.log(
+        'generateContent failed, using fallback',
+        name: 'FirebaseAiAskService',
+        error: error,
+        stackTrace: stackTrace,
+      );
       final fallback = await _fallback.ask(context: context, question: question);
       if (fallback is Success<SceneAnswer>) {
         return Success(
