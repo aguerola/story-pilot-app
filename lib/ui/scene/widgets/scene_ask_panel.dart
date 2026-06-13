@@ -9,8 +9,9 @@ import 'package:storypilot/ui/ask/bloc/ask_event.dart';
 import 'package:storypilot/ui/ask/bloc/ask_state.dart';
 import 'package:storypilot/ui/auth/bloc/auth_bloc.dart';
 import 'package:storypilot/ui/auth/bloc/auth_state.dart';
+import 'package:storypilot/ui/scene/bloc/scene_brief_cubit.dart';
 
-const _suggestedQuestions = [
+const _fallbackSuggestedQuestions = [
   '¿Quién está en esta escena?',
   '¿Qué acaba de pasar?',
   '¿Por qué hacen esto?',
@@ -163,6 +164,13 @@ class _SuggestedQuestions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Prefer the AI's scene-specific questions; fall back to the static list.
+    final briefState = context.watch<SceneBriefCubit>().state;
+    final questions = briefState is SceneBriefReady &&
+            briefState.questions.isNotEmpty
+        ? briefState.questions
+        : _fallbackSuggestedQuestions;
+
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -177,7 +185,7 @@ class _SuggestedQuestions extends StatelessWidget {
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: _suggestedQuestions
+            children: questions
                 .map(
                   (question) => ActionChip(
                     label: Text(question),

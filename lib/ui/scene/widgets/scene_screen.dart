@@ -7,9 +7,9 @@ import 'package:storypilot/ui/ask/bloc/ask_bloc.dart';
 import 'package:storypilot/ui/ask/bloc/ask_event.dart';
 import 'package:storypilot/ui/core/ui/character_chip.dart';
 import 'package:storypilot/ui/scene/bloc/scene_bloc.dart';
+import 'package:storypilot/ui/scene/bloc/scene_brief_cubit.dart';
 import 'package:storypilot/ui/scene/bloc/scene_event.dart';
 import 'package:storypilot/ui/scene/bloc/scene_state.dart';
-import 'package:storypilot/ui/scene/bloc/scene_summary_cubit.dart';
 import 'package:storypilot/ui/scene/widgets/scene_ask_panel.dart';
 import 'package:storypilot/utils/timestamp_utils.dart';
 
@@ -28,7 +28,7 @@ class SceneScreen extends StatelessWidget {
           create: (_) => getIt<SceneBloc>()..add(SceneStarted(tmdbId: id)),
         ),
         BlocProvider(create: (_) => getIt<AskBloc>()),
-        BlocProvider(create: (_) => getIt<SceneSummaryCubit>()),
+        BlocProvider(create: (_) => getIt<SceneBriefCubit>()),
       ],
       child: _SceneView(id: id),
     );
@@ -88,9 +88,11 @@ class _SceneViewState extends State<_SceneView> {
       listener: (context, state) {
         if (state is SceneLoaded) {
           context.read<AskBloc>().add(AskContextUpdated(state.context));
-          // Free, Lite-only summary shown automatically; never counts toward
-          // the daily question quota.
-          context.read<SceneSummaryCubit>().summarize(state.context);
+          // Free, Lite-only brief (summary + characters + questions) shown
+          // automatically; never counts toward the daily question quota.
+          context
+              .read<SceneBriefCubit>()
+              .load(state.context, getIt<TitleSessionHolder>().cast);
         }
       },
       child: Scaffold(
@@ -282,64 +284,75 @@ class _SceneLoadedContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return ListView(
-      children: [
-        Text('Qué está pasando', style: theme.textTheme.titleMedium),
-        const SizedBox(height: 8),
-        const _SceneSummary(),
-        const SizedBox(height: 20),
-        if (sceneContext.characters.isNotEmpty) ...[
-          Text('Personajes en escena', style: theme.textTheme.titleMedium),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: sceneContext.characters
-                .map((c) => CharacterChip(character: c))
-                .toList(),
-          ),
-        ],
-      ],
+    return BlocBuilder<SceneBriefCubit, SceneBriefState>(
+      builder: (context, briefState) {
+        // Characters: prefer the AI's selection; while loading or on failure
+        // fall back to the heuristic ones so chips appear instantly.
+        final characters = switch (briefState) {
+          SceneBriefReady(:final characters) =>
+            characters.isNotEmpty ? characters : sceneContext.characters,
+          _ => sceneContext.characters,
+        };
+        return ListView(
+          children: [
+            Text('Qué está pasando', style: theme.textTheme.titleMedium),
+            const SizedBox(height: 8),
+            _SceneSummary(state: briefState),
+            const SizedBox(height: 20),
+            if (characters.isNotEmpty) ...[
+              Text('Personajes en escena', style: theme.textTheme.titleMedium),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: characters
+                    .map((c) => CharacterChip(character: c))
+                    .toList(),
+              ),
+            ],
+          ],
+        );
+      },
     );
   }
 }
 
 class _SceneSummary extends StatelessWidget {
-  const _SceneSummary();
+  const _SceneSummary({required this.state});
+
+  final SceneBriefState state;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return BlocBuilder<SceneSummaryCubit, SceneSummaryState>(
-      builder: (context, state) => switch (state) {
-        SceneSummaryInitial() || SceneSummaryLoading() => Row(
-            children: [
-              const SizedBox(
-                width: 16,
-                height: 16,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                'Analizando la escena…',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ),
-        SceneSummaryReady(:final text) => Text(
-            text,
-            style: theme.textTheme.bodyLarge,
-          ),
-        SceneSummaryFailure() => Text(
-            'No se pudo generar el resumen automático. Puedes preguntar abajo.',
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
+    return switch (state) {
+      SceneBriefInitial() || SceneBriefLoading() => Row(
+          children: [
+            const SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(strokeWidth: 2),
             ),
+            const SizedBox(width: 12),
+            Text(
+              'Analizando la escena…',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+      SceneBriefReady(:final summary) => Text(
+          summary,
+          style: theme.textTheme.bodyLarge,
+        ),
+      SceneBriefFailure() => Text(
+          'No se pudo generar el resumen automático. Puedes preguntar abajo.',
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
           ),
-      },
-    );
+        ),
+    };
   }
 }
 

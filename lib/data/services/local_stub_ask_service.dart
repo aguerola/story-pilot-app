@@ -1,10 +1,43 @@
 import 'package:storypilot/config/gemini_model.dart';
 import 'package:storypilot/data/services/ask_service.dart';
+import 'package:storypilot/domain/models/cast_member.dart';
 import 'package:storypilot/domain/models/scene_answer.dart';
+import 'package:storypilot/domain/models/scene_brief.dart';
 import 'package:storypilot/domain/models/scene_context.dart';
 import 'package:storypilot/domain/result.dart';
 
+const fallbackSuggestedQuestions = [
+  '¿Quién está en esta escena?',
+  '¿Qué acaba de pasar?',
+  '¿Por qué hacen esto?',
+  '¿Qué significa esta conversación?',
+];
+
 class LocalStubAskService implements AskService {
+  @override
+  Future<Result<SceneBrief>> brief({
+    required SceneContext context,
+    required List<CastMember> cast,
+    GeminiModel model = GeminiModel.defaultModel,
+  }) async {
+    final summary = context.dialogueText
+        .split('\n')
+        .where((l) => l.trim().isNotEmpty)
+        .take(3)
+        .join(' ');
+    return Success(
+      SceneBrief(
+        summary: summary.isEmpty
+            ? 'No hay diálogo en la ventana temporal seleccionada.'
+            : 'En esta escena ocurre lo siguiente: $summary',
+        presentCharacterNames: context.characters
+            .map((c) => c.castMember.characterName)
+            .toList(),
+        questions: fallbackSuggestedQuestions,
+      ),
+    );
+  }
+
   @override
   Future<Result<SceneAnswer>> ask({
     required SceneContext context,
