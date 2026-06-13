@@ -1,0 +1,33 @@
+import 'package:storypilot/data/services/local_cache_service.dart';
+import 'package:storypilot/data/services/tmdb_service.dart';
+import 'package:storypilot/domain/models/media_type.dart';
+import 'package:storypilot/domain/models/title_detail.dart';
+import 'package:storypilot/domain/models/title_summary.dart';
+import 'package:storypilot/domain/result.dart';
+
+class TitleRepository {
+  TitleRepository(this._tmdb, this._cache);
+
+  final TmdbService _tmdb;
+  final LocalCacheService _cache;
+
+  Future<Result<List<TitleSummary>>> search(String query) {
+    if (query.trim().isEmpty) {
+      return Future.value(const Success([]));
+    }
+    return _tmdb.search(query.trim());
+  }
+
+  Future<Result<TitleDetail>> getDetail(int id, MediaType type) async {
+    final cached = await _cache.getTitle(id, type);
+    if (cached != null && !cached.isExpired) {
+      return Success(cached.data);
+    }
+
+    final remote = await _tmdb.fetchDetail(id, type);
+    if (remote is Success<TitleDetail>) {
+      await _cache.saveTitle(id, type, remote.data);
+    }
+    return remote;
+  }
+}

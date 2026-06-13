@@ -1,0 +1,54 @@
+import 'package:go_router/go_router.dart';
+import 'package:storypilot/domain/models/media_type.dart';
+import 'package:storypilot/ui/ask/widgets/ask_screen.dart';
+import 'package:storypilot/ui/scene/widgets/scene_screen.dart';
+import 'package:storypilot/ui/search/widgets/search_screen.dart';
+import 'package:storypilot/ui/subtitles/widgets/subtitles_screen.dart';
+import 'package:storypilot/ui/title_detail/widgets/title_detail_screen.dart';
+
+GoRouter createAppRouter() {
+  return GoRouter(
+    initialLocation: '/',
+    routes: [
+      GoRoute(
+        path: '/',
+        builder: (context, state) => const SearchScreen(),
+      ),
+      GoRoute(
+        path: '/title/:id',
+        builder: (context, state) {
+          final id = int.parse(state.pathParameters['id']!);
+          final typeName = state.uri.queryParameters['type'] ?? 'movie';
+          return TitleDetailScreen(
+            id: id,
+            mediaType: MediaType.fromTmdb(typeName),
+          );
+        },
+        routes: [
+          GoRoute(
+            path: 'subtitles',
+            builder: (context, state) {
+              final id = int.parse(state.pathParameters['id']!);
+              final typeName = state.uri.queryParameters['type'] ?? 'movie';
+              return SubtitlesScreen(
+                id: id,
+                mediaType: MediaType.fromTmdb(typeName),
+              );
+            },
+          ),
+          GoRoute(
+            path: 'scene',
+            builder: (context, state) {
+              final id = int.parse(state.pathParameters['id']!);
+              return SceneScreen(id: id);
+            },
+          ),
+          GoRoute(
+            path: 'ask',
+            builder: (context, state) => const AskScreen(),
+          ),
+        ],
+      ),
+    ],
+  );
+}
