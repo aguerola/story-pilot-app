@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:storypilot/config/gemini_pricing.dart';
+import 'package:storypilot/config/gemini_model.dart';
 
 class SceneAnswer extends Equatable {
   const SceneAnswer({
@@ -41,7 +41,7 @@ class SceneAnswer extends Equatable {
 
   double? get estimatedCostUsd {
     if (modelId == null) return null;
-    return GeminiPricing.forModel(modelId!).estimateCostUsd(
+    return GeminiModel.fromId(modelId!).estimateCostUsd(
       promptTokens: promptTokens,
       responseTokens: responseTokens,
       thoughtsTokens: thoughtsTokens,
@@ -51,9 +51,9 @@ class SceneAnswer extends Equatable {
   String? get costLabel {
     final cost = estimatedCostUsd;
     if (cost == null || modelId == null) return null;
-    final pricing = GeminiPricing.forModel(modelId!);
-    return '${GeminiPricing.formatUsd(cost)} USD '
-        '(${pricing.modelId}, ${pricing.tierLabel})';
+    final model = GeminiModel.fromId(modelId!);
+    return '${GeminiModel.formatUsd(cost)} USD '
+        '(${model.id}, ${GeminiModel.tierLabel})';
   }
 
   @override

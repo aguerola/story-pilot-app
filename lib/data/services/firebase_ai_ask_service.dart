@@ -1,6 +1,7 @@
 import 'dart:developer' as developer;
 
 import 'package:firebase_ai/firebase_ai.dart';
+import 'package:storypilot/config/gemini_model.dart';
 import 'package:storypilot/data/services/ask_service.dart';
 import 'package:storypilot/data/services/local_stub_ask_service.dart';
 import 'package:storypilot/domain/failure.dart';
@@ -10,16 +11,21 @@ import 'package:storypilot/domain/result.dart';
 import 'package:storypilot/utils/timestamp_utils.dart';
 
 class FirebaseAiAskService implements AskService {
-  FirebaseAiAskService({GenerativeModel? model, LocalStubAskService? fallback})
-      : _model = model ??
+  FirebaseAiAskService({
+    GenerativeModel? model,
+    LocalStubAskService? fallback,
+    GeminiModel geminiModel = GeminiModel.defaultModel,
+  })  : _geminiModel = geminiModel,
+        _model = model ??
             FirebaseAI.googleAI().generativeModel(
-              model: modelId,
+              model: geminiModel.id,
               systemInstruction: Content.system(_systemInstruction),
             ),
         _fallback = fallback ?? LocalStubAskService();
 
-  static const modelId = 'gemini-2.5-flash';
+  static const model = GeminiModel.defaultModel;
 
+  final GeminiModel _geminiModel;
   final GenerativeModel _model;
   final LocalStubAskService _fallback;
 
@@ -66,7 +72,7 @@ Reglas estrictas:
           responseTokens: usage?.candidatesTokenCount,
           thoughtsTokens: usage?.thoughtsTokenCount,
           totalTokens: usage?.totalTokenCount,
-          modelId: modelId,
+          modelId: _geminiModel.id,
         ),
       );
     } catch (error, stackTrace) {

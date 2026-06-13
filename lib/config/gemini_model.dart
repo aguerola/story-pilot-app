@@ -1,33 +1,35 @@
-/// Pricing for Gemini models via Google AI / Firebase AI.
+/// Supported Gemini models for Firebase AI.
 /// Source: https://ai.google.dev/gemini-api/docs/pricing (Standard tier, paid)
-class GeminiPricing {
-  const GeminiPricing({
-    required this.modelId,
-    required this.inputPerMillionUsd,
-    required this.outputPerMillionUsd,
-    required this.tierLabel,
-  });
-
-  final String modelId;
-  final double inputPerMillionUsd;
-  final double outputPerMillionUsd;
-  final String tierLabel;
-
-  /// gemini-2.5-flash — Standard paid tier (text input / output incl. thinking).
-  static const flash25 = GeminiPricing(
-    modelId: 'gemini-2.5-flash',
+enum GeminiModel {
+  flashLite25(
+    id: 'gemini-2.5-flash-lite',
+    inputPerMillionUsd: 0.10,
+    outputPerMillionUsd: 0.40,
+  ),
+  flash25(
+    id: 'gemini-2.5-flash',
     inputPerMillionUsd: 0.30,
     outputPerMillionUsd: 2.50,
-    tierLabel: 'Standard',
   );
 
-  static GeminiPricing forModel(String modelId) {
-    switch (modelId) {
-      case 'gemini-2.5-flash':
-        return flash25;
-      default:
-        return flash25;
+  const GeminiModel({
+    required this.id,
+    required this.inputPerMillionUsd,
+    required this.outputPerMillionUsd,
+  });
+
+  final String id;
+  final double inputPerMillionUsd;
+  final double outputPerMillionUsd;
+
+  static const tierLabel = 'Standard';
+  static const defaultModel = flashLite25;
+
+  static GeminiModel fromId(String id) {
+    for (final model in values) {
+      if (model.id == id) return model;
     }
+    return defaultModel;
   }
 
   /// Output billing includes response + thinking tokens per Google pricing.
@@ -36,7 +38,9 @@ class GeminiPricing {
     int? responseTokens,
     int? thoughtsTokens,
   }) {
-    if (promptTokens == null && responseTokens == null && thoughtsTokens == null) {
+    if (promptTokens == null &&
+        responseTokens == null &&
+        thoughtsTokens == null) {
       return null;
     }
 
