@@ -7,6 +7,7 @@ import 'package:storypilot/data/repositories/scene_repository.dart';
 import 'package:storypilot/data/repositories/subtitle_repository.dart';
 import 'package:storypilot/data/repositories/title_repository.dart';
 import 'package:storypilot/data/services/auth_service.dart';
+import 'package:storypilot/data/services/browse_history_service.dart';
 import 'package:storypilot/data/services/usage_limit_service.dart';
 import 'package:storypilot/data/services/ask_service.dart';
 import 'package:storypilot/data/services/firebase_ai_ask_service.dart';
@@ -20,6 +21,7 @@ import 'package:storypilot/data/services/settings_service.dart';
 import 'package:storypilot/data/services/subtitle_parser_service.dart';
 import 'package:storypilot/data/services/title_session_holder.dart';
 import 'package:storypilot/data/services/tmdb_service.dart';
+import 'package:storypilot/ui/home/bloc/home_bloc.dart';
 import 'package:storypilot/ui/auth/bloc/auth_bloc.dart';
 import 'package:storypilot/ui/auth/bloc/auth_event.dart';
 import 'package:storypilot/ui/scene/bloc/scene_bloc.dart';
@@ -69,6 +71,9 @@ Future<void> configureDependencies() async {
     ..registerLazySingleton(
       () => LocalCacheService(getIt<SharedPreferences>()),
     )
+    ..registerLazySingleton(
+      () => BrowseHistoryService(getIt<SharedPreferences>()),
+    )
     ..registerLazySingleton(SceneAnalyzerService.new)
     ..registerLazySingleton<AskService>(_createAskService)
     ..registerLazySingleton(
@@ -87,9 +92,16 @@ Future<void> configureDependencies() async {
     ..registerLazySingleton(() => AskRepository(getIt<AskService>()))
     ..registerFactory(() => SearchBloc(getIt<TitleRepository>()))
     ..registerFactory(
+      () => HomeBloc(
+        getIt<TitleRepository>(),
+        getIt<BrowseHistoryService>(),
+      ),
+    )
+    ..registerFactory(
       () => TitleDetailBloc(
         getIt<TitleRepository>(),
         getIt<TitleSessionHolder>(),
+        getIt<BrowseHistoryService>(),
       ),
     )
     ..registerFactory(

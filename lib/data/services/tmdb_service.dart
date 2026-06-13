@@ -26,6 +26,42 @@ class TmdbService {
     'Original Music Composer',
   };
 
+  Future<Result<List<TitleSummary>>> fetchPopularMovies() async {
+    return _fetchPopularList('movie', MediaType.movie);
+  }
+
+  Future<Result<List<TitleSummary>>> fetchPopularSeries() async {
+    return _fetchPopularList('tv', MediaType.tv);
+  }
+
+  Future<Result<List<TitleSummary>>> _fetchPopularList(
+    String path,
+    MediaType mediaType,
+  ) async {
+    if (!_hasTmdbKey) {
+      return const Error(NetworkFailure('TMDB_API_KEY not configured'));
+    }
+    try {
+      final response = await _dio.get<Map<String, dynamic>>(
+        Env.wrapUrl('${Env.tmdbBaseUrl}/$path/popular'),
+        queryParameters: {
+          'api_key': _apiKey,
+          'page': 1,
+        },
+      );
+      final results = response.data?['results'] as List<dynamic>? ?? [];
+      final summaries = results
+          .whereType<Map<String, dynamic>>()
+          .map((json) => _mapListItem(json, mediaType))
+          .toList();
+      return Success(summaries);
+    } on DioException catch (e) {
+      return Error(_mapDioError(e));
+    } catch (e) {
+      return Error(ServerFailure(e.toString()));
+    }
+  }
+
   Future<Result<List<TitleSummary>>> search(String query) async {
     if (!_hasTmdbKey) {
       return const Error(NetworkFailure('TMDB_API_KEY not configured'));
@@ -155,6 +191,10 @@ class TmdbService {
 
   TitleSummary _mapSearchResult(Map<String, dynamic> json) {
     final mediaType = MediaType.fromTmdb(json['media_type'] as String);
+    return _mapListItem(json, mediaType);
+  }
+
+  TitleSummary _mapListItem(Map<String, dynamic> json, MediaType mediaType) {
     final title = mediaType == MediaType.movie
         ? json['title'] as String? ?? ''
         : json['name'] as String? ?? '';

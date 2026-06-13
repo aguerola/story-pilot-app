@@ -291,6 +291,75 @@ void main() {
     });
   });
 
+  group('fetchPopularMovies', () {
+    test('maps movie list from popular endpoint', () async {
+      when(
+        () => dio.get<Map<String, dynamic>>(
+          any(),
+          queryParameters: any(named: 'queryParameters'),
+        ),
+      ).thenAnswer(
+        (_) async => Response(
+          data: {
+            'results': [
+              {
+                'id': 550,
+                'title': 'Fight Club',
+                'release_date': '1999-10-15',
+                'poster_path': '/poster.jpg',
+              },
+            ],
+          },
+          requestOptions: RequestOptions(path: '/movie/popular'),
+        ),
+      );
+
+      final result = await service.fetchPopularMovies();
+
+      expect(result, isA<Success<List<TitleSummary>>>());
+      final movies = (result as Success<List<TitleSummary>>).data;
+      expect(movies, hasLength(1));
+      expect(movies.first.title, 'Fight Club');
+      expect(movies.first.mediaType, MediaType.movie);
+      expect(movies.first.year, 1999);
+      expect(movies.first.posterUrl, contains('poster.jpg'));
+    });
+  });
+
+  group('fetchPopularSeries', () {
+    test('maps TV list from popular endpoint', () async {
+      when(
+        () => dio.get<Map<String, dynamic>>(
+          any(),
+          queryParameters: any(named: 'queryParameters'),
+        ),
+      ).thenAnswer(
+        (_) async => Response(
+          data: {
+            'results': [
+              {
+                'id': 1396,
+                'name': 'Breaking Bad',
+                'first_air_date': '2008-01-20',
+                'poster_path': '/bb.jpg',
+              },
+            ],
+          },
+          requestOptions: RequestOptions(path: '/tv/popular'),
+        ),
+      );
+
+      final result = await service.fetchPopularSeries();
+
+      expect(result, isA<Success<List<TitleSummary>>>());
+      final series = (result as Success<List<TitleSummary>>).data;
+      expect(series, hasLength(1));
+      expect(series.first.title, 'Breaking Bad');
+      expect(series.first.mediaType, MediaType.tv);
+      expect(series.first.year, 2008);
+    });
+  });
+
   group('fetchSeasonEpisodes', () {
     test('maps episode list from season detail', () async {
       when(

@@ -36,7 +36,7 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
 
   Future<void> _search(String query, Emitter<SearchState> emit) async {
     if (query.trim().isEmpty) {
-      emit(const SearchLoaded([]));
+      emit(const SearchInitial());
       return;
     }
     emit(const SearchLoading());

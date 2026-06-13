@@ -24,10 +24,10 @@ void main() {
   tearDown(() => bloc.close());
 
   blocTest<SearchBloc, SearchState>(
-    'emits empty loaded when query is empty',
+    'emits initial when query is empty',
     build: () => bloc,
     act: (bloc) => bloc.add(const SearchSubmitted('')),
-    expect: () => [const SearchLoaded([])],
+    expect: () => [const SearchInitial()],
   );
 
   blocTest<SearchBloc, SearchState>(

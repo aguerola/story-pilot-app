@@ -38,4 +38,12 @@ class TitleRepository {
   ) {
     return _tmdb.fetchSeasonEpisodes(tvId, seasonNumber);
   }
+
+  Future<Result<List<TitleSummary>>> getPopularMovies() {
+    return _tmdb.fetchPopularMovies();
+  }
+
+  Future<Result<List<TitleSummary>>> getPopularSeries() {
+    return _tmdb.fetchPopularSeries();
+  }
 }
