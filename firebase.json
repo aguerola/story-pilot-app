@@ -1,1 +1,28 @@
-{"flutter":{"platforms":{"dart":{"lib/firebase_options.dart":{"projectId":"storypilot-35945","configurations":{"web":"1:495865262735:web:c446d0eeaca5f1fcd3b6fa"}}}}}}
+{
+  "hosting": {
+    "public": "build/web",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  },
+  "flutter": {
+    "platforms": {
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "storypilot-35945",
+          "configurations": {
+            "web": "1:495865262735:web:c446d0eeaca5f1fcd3b6fa"
+          }
+        }
+      }
+    }
+  }
+}

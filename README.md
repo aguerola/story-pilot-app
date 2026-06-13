@@ -86,3 +86,45 @@ flutter test
 ```bash
 flutter build web
 ```
+
+## Deploy (Firebase Hosting)
+
+Production URLs:
+
+- https://storypilot-35945.web.app
+- https://storypilot-35945.firebaseapp.com
+
+Every push to `main` runs [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml): tests → `flutter build web --release` → Firebase Hosting deploy.
+
+### GitHub Secrets (one-time)
+
+In **Settings → Secrets and variables → Actions**, add:
+
+| Secret | Description |
+|--------|-------------|
+| `FIREBASE_SERVICE_ACCOUNT` | Full JSON from Firebase Console → Project settings → Service accounts → Generate new private key |
+| `TMDB_API_KEY` | TMDB API key |
+| `OPENSUBTITLES_API_KEY` | OpenSubtitles API key |
+
+The service account needs at least **Firebase Hosting Admin** (or **Firebase Admin** for simplicity).
+
+### Firebase Console (one-time)
+
+1. **Hosting** — enabled automatically on first deploy.
+2. **Authentication → Settings → Authorized domains** — add:
+   - `storypilot-35945.web.app`
+   - `storypilot-35945.firebaseapp.com`
+3. Confirm **Email link (passwordless sign-in)** is enabled under Email/Password provider.
+
+### Manual deploy (optional)
+
+```bash
+flutter build web --release \
+  --dart-define=TMDB_API_KEY=your_tmdb_key \
+  --dart-define=OPENSUBTITLES_API_KEY=your_opensubtitles_key \
+  --dart-define=USE_FIREBASE_AI=true
+
+firebase deploy --only hosting
+```
+
+Requires [Firebase CLI](https://firebase.google.com/docs/cli) and `firebase login`.
