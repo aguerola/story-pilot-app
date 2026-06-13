@@ -22,11 +22,6 @@ class DetailActions extends StatelessWidget {
           icon: const Icon(Icons.theaters),
           label: const Text('Scene'),
         ),
-        OutlinedButton.icon(
-          onPressed: () => context.go('/title/$titleId/ask'),
-          icon: const Icon(Icons.chat),
-          label: const Text('Ask'),
-        ),
       ],
     );
   }

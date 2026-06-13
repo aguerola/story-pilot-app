@@ -1,6 +1,5 @@
 import 'package:go_router/go_router.dart';
 import 'package:storypilot/domain/models/media_type.dart';
-import 'package:storypilot/ui/ask/widgets/ask_screen.dart';
 import 'package:storypilot/ui/scene/widgets/scene_screen.dart';
 import 'package:storypilot/ui/search/widgets/search_screen.dart';
 import 'package:storypilot/ui/subtitles/widgets/subtitles_screen.dart';
@@ -45,7 +44,10 @@ GoRouter createAppRouter() {
           ),
           GoRoute(
             path: 'ask',
-            builder: (context, state) => const AskScreen(),
+            redirect: (context, state) {
+              final id = state.pathParameters['id']!;
+              return '/title/$id/scene';
+            },
           ),
         ],
       ),

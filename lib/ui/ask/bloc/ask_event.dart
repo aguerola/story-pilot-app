@@ -17,6 +17,15 @@ final class AskStarted extends AskEvent {
   List<Object?> get props => [context];
 }
 
+final class AskContextUpdated extends AskEvent {
+  const AskContextUpdated(this.context);
+
+  final SceneContext context;
+
+  @override
+  List<Object?> get props => [context];
+}
+
 final class AskQuestionSubmitted extends AskEvent {
   const AskQuestionSubmitted(this.question);
 

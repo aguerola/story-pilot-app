@@ -8,6 +8,7 @@ import 'package:storypilot/ui/ask/bloc/ask_state.dart';
 class AskBloc extends Bloc<AskEvent, AskState> {
   AskBloc(this._repository) : super(const AskInitial()) {
     on<AskStarted>(_onStarted);
+    on<AskContextUpdated>(_onContextUpdated);
     on<AskQuestionSubmitted>(_onQuestionSubmitted);
   }
 
@@ -15,7 +16,16 @@ class AskBloc extends Bloc<AskEvent, AskState> {
   SceneContext? _context;
 
   void _onStarted(AskStarted event, Emitter<AskState> emit) {
-    _context = event.context;
+    _updateContext(event.context, emit);
+  }
+
+  void _onContextUpdated(AskContextUpdated event, Emitter<AskState> emit) {
+    _updateContext(event.context, emit);
+  }
+
+  void _updateContext(SceneContext context, Emitter<AskState> emit) {
+    _context = context;
+    emit(const AskInitial());
   }
 
   Future<void> _onQuestionSubmitted(

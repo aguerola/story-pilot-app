@@ -37,6 +37,7 @@ Reglas estrictas:
 - Basa tu respuesta principalmente en el diálogo de la escena seleccionada (2 minutos antes hasta 30 segundos después del momento indicado).
 - Usa el contexto previo únicamente para entender referencias; no lo resumas ni describas la trama completa.
 - Usa SOLO la información proporcionada; no inventes tramas.
+- La lista de personajes detectados es heurística y puede estar incompleta. Puedes inferir quién interviene en la escena a partir del diálogo, pero no inventes hechos que no estén en los subtítulos.
 - NO describas eventos posteriores al momento seleccionado.
 - Responde en el idioma de la pregunta del usuario.
 - Si la escena seleccionada no tiene información suficiente, dilo claramente.
@@ -125,7 +126,8 @@ $sceneDialogue
 Contexto previo (todos los subtítulos desde el inicio hasta el momento seleccionado; solo para referencias, NO para resumir):
 $priorDialogue
 
-Personajes detectados en la escena: ${characters.isEmpty ? 'ninguno' : characters}
+Personajes detectados automáticamente (lista incompleta, puede haber más): ${characters.isEmpty ? 'ninguno' : characters}
+Puede haber más personajes en la escena; infiérelos solo a partir del diálogo proporcionado.
 
 Pregunta: $question
 

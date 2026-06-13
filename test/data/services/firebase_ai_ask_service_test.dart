@@ -27,7 +27,9 @@ void main() {
     expect(content, contains('Inicio\nMitad'));
     expect(content, contains('¿Qué pasa al final?'));
     expect(content, contains('ESCENA SELECCIONADA'));
-    expect(content, contains('Personajes detectados'));
+    expect(content, contains('Personajes detectados automáticamente'));
+    expect(content, contains('lista incompleta'));
+    expect(content, contains('infiérelos solo a partir del diálogo'));
   });
 
   test('SceneAnswer tokenUsageLabel formats usage counts', () {
