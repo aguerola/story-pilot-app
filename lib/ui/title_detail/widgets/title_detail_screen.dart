@@ -80,7 +80,10 @@ class _TitleDetailView extends StatelessWidget {
                         const SizedBox(height: 8),
                         DetailCastSection(cast: detail.cast),
                         if (detail.seasons != null)
-                          DetailSeasonsSection(seasons: detail.seasons!),
+                          DetailSeasonsSection(
+                            titleId: id,
+                            seasons: detail.seasons!,
+                          ),
                       ],
                     ),
                   ),

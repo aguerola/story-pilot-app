@@ -1,5 +1,6 @@
 import 'package:storypilot/data/services/local_cache_service.dart';
 import 'package:storypilot/data/services/tmdb_service.dart';
+import 'package:storypilot/domain/models/episode.dart';
 import 'package:storypilot/domain/models/media_type.dart';
 import 'package:storypilot/domain/models/title_detail.dart';
 import 'package:storypilot/domain/models/title_summary.dart';
@@ -29,5 +30,12 @@ class TitleRepository {
       await _cache.saveTitle(id, type, remote.data);
     }
     return remote;
+  }
+
+  Future<Result<List<Episode>>> getSeasonEpisodes(
+    int tvId,
+    int seasonNumber,
+  ) {
+    return _tmdb.fetchSeasonEpisodes(tvId, seasonNumber);
   }
 }

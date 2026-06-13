@@ -4,6 +4,7 @@ import 'package:storypilot/domain/failure.dart';
 import 'package:storypilot/domain/models/cast_member.dart';
 import 'package:storypilot/domain/models/crew_member.dart';
 import 'package:storypilot/domain/models/media_type.dart';
+import 'package:storypilot/domain/models/episode.dart';
 import 'package:storypilot/domain/models/season.dart';
 import 'package:storypilot/domain/models/title_detail.dart';
 import 'package:storypilot/domain/models/title_summary.dart';
@@ -236,6 +237,45 @@ class TmdbService {
             ?.whereType<Map<String, dynamic>>()
             .map((n) => n['name'] as String? ?? '')
             .where((name) => name.isNotEmpty)
+            .toList() ??
+        [];
+  }
+
+  Future<Result<List<Episode>>> fetchSeasonEpisodes(
+    int tvId,
+    int seasonNumber,
+  ) async {
+    if (!_hasTmdbKey) {
+      return const Error(NetworkFailure('TMDB_API_KEY not configured'));
+    }
+    try {
+      final response = await _dio.get<Map<String, dynamic>>(
+        Env.wrapUrl('${Env.tmdbBaseUrl}/tv/$tvId/season/$seasonNumber'),
+        queryParameters: {'api_key': _apiKey},
+      );
+      final episodes = _mapEpisodes(response.data?['episodes'] as List<dynamic>?);
+      return Success(episodes);
+    } on DioException catch (e) {
+      return Error(_mapDioError(e));
+    } catch (e) {
+      return Error(ServerFailure(e.toString()));
+    }
+  }
+
+  List<Episode> _mapEpisodes(List<dynamic>? episodeList) {
+    return episodeList
+            ?.whereType<Map<String, dynamic>>()
+            .map(
+              (e) => Episode(
+                episodeNumber: e['episode_number'] as int,
+                name: e['name'] as String? ??
+                    'Capítulo ${e['episode_number']}',
+                overview: e['overview'] as String?,
+                airDate: e['air_date'] as String?,
+                stillUrl: _posterUrl(e['still_path'] as String?),
+                runtimeMinutes: e['runtime'] as int?,
+              ),
+            )
             .toList() ??
         [];
   }

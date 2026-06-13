@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:storypilot/data/services/tmdb_service.dart';
 import 'package:storypilot/domain/models/crew_member.dart';
+import 'package:storypilot/domain/models/episode.dart';
 import 'package:storypilot/domain/models/media_type.dart';
 import 'package:storypilot/domain/models/title_detail.dart';
 import 'package:storypilot/domain/models/title_summary.dart';
@@ -287,6 +288,55 @@ void main() {
       expect(detail.crew.first.job, 'Writer');
       expect(detail.keywords, ['drugs']);
       expect(detail.runtimeMinutes, 45);
+    });
+  });
+
+  group('fetchSeasonEpisodes', () {
+    test('maps episode list from season detail', () async {
+      when(
+        () => dio.get<Map<String, dynamic>>(
+          any(),
+          queryParameters: any(named: 'queryParameters'),
+        ),
+      ).thenAnswer(
+        (_) async => Response(
+          data: {
+            'episodes': [
+              {
+                'episode_number': 1,
+                'name': 'Pilot',
+                'overview': 'First episode.',
+                'air_date': '2008-01-20',
+                'still_path': '/still.jpg',
+                'runtime': 58,
+              },
+              {
+                'episode_number': 2,
+                'name': "Cat's in the Bag...",
+                'overview': '',
+                'air_date': '2008-01-27',
+                'still_path': null,
+                'runtime': 48,
+              },
+            ],
+          },
+          requestOptions: RequestOptions(path: '/tv/1396/season/1'),
+        ),
+      );
+
+      final result = await service.fetchSeasonEpisodes(1396, 1);
+
+      expect(result, isA<Success<List<Episode>>>());
+      final episodes = (result as Success<List<Episode>>).data;
+      expect(episodes, hasLength(2));
+      expect(episodes.first.episodeNumber, 1);
+      expect(episodes.first.name, 'Pilot');
+      expect(episodes.first.overview, 'First episode.');
+      expect(episodes.first.airDate, '2008-01-20');
+      expect(episodes.first.stillUrl, contains('still.jpg'));
+      expect(episodes.first.runtimeMinutes, 58);
+      expect(episodes[1].name, "Cat's in the Bag...");
+      expect(episodes[1].stillUrl, isNull);
     });
   });
 }
