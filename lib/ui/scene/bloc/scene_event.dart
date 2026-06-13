@@ -8,12 +8,13 @@ sealed class SceneEvent extends Equatable {
 }
 
 final class SceneStarted extends SceneEvent {
-  const SceneStarted({this.initialTimestampMs = 0});
+  const SceneStarted({required this.tmdbId, this.initialTimestampMs = 0});
 
+  final int tmdbId;
   final int initialTimestampMs;
 
   @override
-  List<Object?> get props => [initialTimestampMs];
+  List<Object?> get props => [tmdbId, initialTimestampMs];
 }
 
 final class TimestampChanged extends SceneEvent {

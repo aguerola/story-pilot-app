@@ -18,7 +18,7 @@ class SceneScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => getIt<SceneBloc>()..add(const SceneStarted()),
+      create: (_) => getIt<SceneBloc>()..add(SceneStarted(tmdbId: id)),
       child: _SceneView(id: id),
     );
   }

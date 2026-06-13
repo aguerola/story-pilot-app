@@ -45,7 +45,9 @@ Future<void> configureDependencies() async {
     ..registerLazySingleton(() => TmdbService(getIt<Dio>()))
     ..registerLazySingleton(() => OpenSubtitlesService(getIt<Dio>()))
     ..registerLazySingleton(SubtitleParserService.new)
-    ..registerLazySingleton(LocalCacheService.new)
+    ..registerLazySingleton(
+      () => LocalCacheService(getIt<SharedPreferences>()),
+    )
     ..registerLazySingleton(SceneAnalyzerService.new)
     ..registerLazySingleton<AskService>(_createAskService)
     ..registerLazySingleton(
@@ -79,6 +81,7 @@ Future<void> configureDependencies() async {
     ..registerFactory(
       () => SceneBloc(
         getIt<SceneRepository>(),
+        getIt<SubtitleRepository>(),
         getIt<TitleSessionHolder>(),
       ),
     )

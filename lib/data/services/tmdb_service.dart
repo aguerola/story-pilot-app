@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:storypilot/config/env.dart';
 import 'package:storypilot/domain/failure.dart';
 import 'package:storypilot/domain/models/cast_member.dart';
+import 'package:storypilot/domain/models/crew_member.dart';
 import 'package:storypilot/domain/models/media_type.dart';
 import 'package:storypilot/domain/models/season.dart';
 import 'package:storypilot/domain/models/title_detail.dart';
@@ -12,6 +13,14 @@ class TmdbService {
   TmdbService(this._dio);
 
   final Dio _dio;
+
+  static const _crewJobs = {
+    'Director',
+    'Writer',
+    'Screenplay',
+    'Novel',
+    'Original Music Composer',
+  };
 
   Future<Result<List<TitleSummary>>> search(String query) async {
     if (!Env.hasTmdbKey) {
@@ -46,35 +55,49 @@ class TmdbService {
     }
     try {
       final path = type == MediaType.movie ? 'movie' : 'tv';
+      final appendToResponse = type == MediaType.movie
+          ? 'credits,keywords,external_ids'
+          : 'aggregate_credits,keywords,external_ids';
       final detailResponse = await _dio.get<Map<String, dynamic>>(
         Env.wrapUrl('${Env.tmdbBaseUrl}/$path/$id'),
-        queryParameters: {'api_key': Env.tmdbApiKey},
-      );
-      final creditsPath =
-          type == MediaType.movie ? 'movie/$id/credits' : 'tv/$id/aggregate_credits';
-      final creditsResponse = await _dio.get<Map<String, dynamic>>(
-        Env.wrapUrl('${Env.tmdbBaseUrl}/$creditsPath'),
-        queryParameters: {'api_key': Env.tmdbApiKey},
+        queryParameters: {
+          'api_key': Env.tmdbApiKey,
+          'append_to_response': appendToResponse,
+        },
       );
       final detail = detailResponse.data!;
-      final credits = creditsResponse.data!;
+      final creditsKey =
+          type == MediaType.movie ? 'credits' : 'aggregate_credits';
+      final credits = detail[creditsKey] as Map<String, dynamic>? ?? {};
       final summary = _mapDetailSummary(detail, type);
       final cast = _mapCast(credits, type);
+      final crew = _mapCrew(credits);
+      final keywords = _mapKeywords(detail['keywords'] as Map<String, dynamic>?);
+      final externalIds =
+          detail['external_ids'] as Map<String, dynamic>? ?? {};
+
       List<Season>? seasons;
+      List<String> createdBy = const [];
+      List<String> networks = const [];
+      int? numberOfSeasons;
+      int? numberOfEpisodes;
+      bool? inProduction;
+      String? firstAirDate;
+      String? lastAirDate;
+
       if (type == MediaType.tv) {
-        final seasonList = detail['seasons'] as List<dynamic>? ?? [];
-        seasons = seasonList
-            .whereType<Map<String, dynamic>>()
-            .where((s) => (s['season_number'] as int? ?? -1) > 0)
-            .map(
-              (s) => Season(
-                seasonNumber: s['season_number'] as int,
-                name: s['name'] as String? ?? 'Season ${s['season_number']}',
-                episodeCount: s['episode_count'] as int? ?? 0,
-              ),
-            )
-            .toList();
+        seasons = _mapSeasons(detail['seasons'] as List<dynamic>?);
+        createdBy = _mapCreatedBy(detail['created_by'] as List<dynamic>?);
+        networks = _mapNetworks(detail['networks'] as List<dynamic>?);
+        numberOfSeasons = detail['number_of_seasons'] as int?;
+        numberOfEpisodes = detail['number_of_episodes'] as int?;
+        inProduction = detail['in_production'] as bool?;
+        firstAirDate = detail['first_air_date'] as String?;
+        lastAirDate = detail['last_air_date'] as String?;
       }
+
+      final collection = detail['belongs_to_collection'] as Map<String, dynamic>?;
+
       return Success(
         TitleDetail(
           summary: summary,
@@ -85,6 +108,38 @@ class TmdbService {
                   as int?,
           seasons: seasons,
           cast: cast,
+          tagline: detail['tagline'] as String?,
+          genres: _mapGenres(detail['genres'] as List<dynamic>?),
+          status: detail['status'] as String?,
+          originalTitle: type == MediaType.movie
+              ? detail['original_title'] as String?
+              : detail['original_name'] as String?,
+          originalLanguage: detail['original_language'] as String?,
+          rating: (detail['vote_average'] as num?)?.toDouble(),
+          voteCount: detail['vote_count'] as int?,
+          popularity: (detail['popularity'] as num?)?.toDouble(),
+          backdropUrl: _posterUrl(detail['backdrop_path'] as String?),
+          homepage: detail['homepage'] as String?,
+          imdbId: externalIds['imdb_id'] as String?,
+          spokenLanguages:
+              _mapSpokenLanguages(detail['spoken_languages'] as List<dynamic>?),
+          countries:
+              _mapCountries(detail['production_countries'] as List<dynamic>?),
+          releaseDate: type == MediaType.movie
+              ? detail['release_date'] as String?
+              : null,
+          firstAirDate: firstAirDate,
+          lastAirDate: lastAirDate,
+          budget: type == MediaType.movie ? detail['budget'] as int? : null,
+          revenue: type == MediaType.movie ? detail['revenue'] as int? : null,
+          collectionName: collection?['name'] as String?,
+          createdBy: createdBy,
+          networks: networks,
+          numberOfSeasons: numberOfSeasons,
+          numberOfEpisodes: numberOfEpisodes,
+          inProduction: inProduction,
+          crew: crew,
+          keywords: keywords,
         ),
       );
     } on DioException catch (e) {
@@ -127,6 +182,79 @@ class TmdbService {
     );
   }
 
+  List<String> _mapGenres(List<dynamic>? genres) {
+    return genres
+            ?.whereType<Map<String, dynamic>>()
+            .map((g) => g['name'] as String? ?? '')
+            .where((name) => name.isNotEmpty)
+            .toList() ??
+        [];
+  }
+
+  List<String> _mapKeywords(Map<String, dynamic>? keywords) {
+    final list = keywords?['keywords'] as List<dynamic>?;
+    return list
+            ?.whereType<Map<String, dynamic>>()
+            .map((k) => k['name'] as String? ?? '')
+            .where((name) => name.isNotEmpty)
+            .toList() ??
+        [];
+  }
+
+  List<String> _mapSpokenLanguages(List<dynamic>? languages) {
+    return languages
+            ?.whereType<Map<String, dynamic>>()
+            .map((l) => l['english_name'] as String? ?? l['name'] as String? ?? '')
+            .where((name) => name.isNotEmpty)
+            .toList() ??
+        [];
+  }
+
+  List<String> _mapCountries(List<dynamic>? countries) {
+    return countries
+            ?.whereType<Map<String, dynamic>>()
+            .map((c) => c['name'] as String? ?? '')
+            .where((name) => name.isNotEmpty)
+            .toList() ??
+        [];
+  }
+
+  List<String> _mapCreatedBy(List<dynamic>? creators) {
+    return creators
+            ?.whereType<Map<String, dynamic>>()
+            .map((c) => c['name'] as String? ?? '')
+            .where((name) => name.isNotEmpty)
+            .toList() ??
+        [];
+  }
+
+  List<String> _mapNetworks(List<dynamic>? networks) {
+    return networks
+            ?.whereType<Map<String, dynamic>>()
+            .map((n) => n['name'] as String? ?? '')
+            .where((name) => name.isNotEmpty)
+            .toList() ??
+        [];
+  }
+
+  List<Season> _mapSeasons(List<dynamic>? seasonList) {
+    return seasonList
+            ?.whereType<Map<String, dynamic>>()
+            .where((s) => (s['season_number'] as int? ?? -1) > 0)
+            .map(
+              (s) => Season(
+                seasonNumber: s['season_number'] as int,
+                name: s['name'] as String? ?? 'Season ${s['season_number']}',
+                episodeCount: s['episode_count'] as int? ?? 0,
+                overview: s['overview'] as String?,
+                airDate: s['air_date'] as String?,
+                posterUrl: _posterUrl(s['poster_path'] as String?),
+              ),
+            )
+            .toList() ??
+        [];
+  }
+
   List<CastMember> _mapCast(Map<String, dynamic> credits, MediaType type) {
     final castList = credits['cast'] as List<dynamic>? ?? [];
     return castList
@@ -145,6 +273,36 @@ class TmdbService {
         .where((c) => c.name.isNotEmpty)
         .toList()
       ..sort((a, b) => a.billingOrder.compareTo(b.billingOrder));
+  }
+
+  List<CrewMember> _mapCrew(Map<String, dynamic> credits) {
+    final crewList = credits['crew'] as List<dynamic>? ?? [];
+    final seen = <String>{};
+    final result = <CrewMember>[];
+
+    for (final entry in crewList.whereType<Map<String, dynamic>>()) {
+      final job = entry['job'] as String? ?? '';
+      if (!_crewJobs.contains(job)) continue;
+
+      final name = entry['name'] as String? ?? '';
+      if (name.isEmpty) continue;
+
+      final key = '$name|$job';
+      if (seen.contains(key)) continue;
+      seen.add(key);
+
+      result.add(
+        CrewMember(
+          id: entry['id'] as int? ?? 0,
+          name: name,
+          job: job,
+          department: entry['department'] as String? ?? '',
+          profileUrl: _posterUrl(entry['profile_path'] as String?),
+        ),
+      );
+    }
+
+    return result;
   }
 
   int? _parseYear(String? date) {

@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:storypilot/domain/failure.dart';
 import 'package:storypilot/domain/models/media_type.dart';
 import 'package:storypilot/domain/models/subtitle_document.dart';
@@ -20,6 +21,12 @@ class CachedTitleDetail {
 }
 
 class LocalCacheService {
+  LocalCacheService(this._prefs);
+
+  final SharedPreferences _prefs;
+
+  static String subtitleLastKey(int tmdbId) => 'subtitle_last_$tmdbId';
+
   Future<Directory> _cacheDir() async {
     if (kIsWeb) {
       throw UnsupportedError('LocalCacheService is not supported on web');
@@ -36,6 +43,9 @@ class LocalCacheService {
 
   String _subtitleKey(int tmdbId, String lang, String fileId) =>
       'sub_${tmdbId}_${lang}_$fileId.json';
+
+  String _subtitlePrefsKey(int tmdbId, String lang, String fileId) =>
+      'sub_${tmdbId}_${lang}_$fileId';
 
   Future<CachedTitleDetail?> getTitle(int id, MediaType type) async {
     if (kIsWeb) return null;
@@ -68,12 +78,34 @@ class LocalCacheService {
     }
   }
 
+  Future<SubtitleDocument?> getLatestSubtitleForTitle(int tmdbId) async {
+    final meta = _prefs.getString(subtitleLastKey(tmdbId));
+    if (meta == null) return null;
+    final sep = meta.indexOf('|');
+    if (sep <= 0) return null;
+    return getSubtitle(
+      tmdbId,
+      meta.substring(0, sep),
+      meta.substring(sep + 1),
+    );
+  }
+
   Future<SubtitleDocument?> getSubtitle(
     int tmdbId,
     String lang,
     String fileId,
   ) async {
-    if (kIsWeb) return null;
+    if (kIsWeb) {
+      final raw = _prefs.getString(_subtitlePrefsKey(tmdbId, lang, fileId));
+      if (raw == null) return null;
+      try {
+        return SubtitleDocument.fromJson(
+          jsonDecode(raw) as Map<String, dynamic>,
+        );
+      } catch (_) {
+        return null;
+      }
+    }
     try {
       final file = File(
         '${(await _cacheDir()).path}/${_subtitleKey(tmdbId, lang, fileId)}',
@@ -88,12 +120,31 @@ class LocalCacheService {
   }
 
   Future<Result<void>> saveSubtitle(SubtitleDocument document) async {
-    if (kIsWeb) return const Success(null);
+    final encoded = jsonEncode(document.toJson());
+    final meta = '${document.language}|${document.fileId}';
+
+    if (kIsWeb) {
+      try {
+        await _prefs.setString(
+          _subtitlePrefsKey(
+            document.titleId,
+            document.language,
+            document.fileId,
+          ),
+          encoded,
+        );
+        await _prefs.setString(subtitleLastKey(document.titleId), meta);
+        return const Success(null);
+      } catch (e) {
+        return Error(CacheFailure(e.toString()));
+      }
+    }
     try {
       final file = File(
         '${(await _cacheDir()).path}/${_subtitleKey(document.titleId, document.language, document.fileId)}',
       );
-      await file.writeAsString(jsonEncode(document.toJson()));
+      await file.writeAsString(encoded);
+      await _prefs.setString(subtitleLastKey(document.titleId), meta);
       return const Success(null);
     } catch (e) {
       return Error(CacheFailure(e.toString()));

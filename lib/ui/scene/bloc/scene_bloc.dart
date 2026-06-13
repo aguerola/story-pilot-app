@@ -1,18 +1,21 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:storypilot/data/repositories/scene_repository.dart';
+import 'package:storypilot/data/repositories/subtitle_repository.dart';
 import 'package:storypilot/data/services/title_session_holder.dart';
 import 'package:storypilot/domain/result.dart';
 import 'package:storypilot/ui/scene/bloc/scene_event.dart';
 import 'package:storypilot/ui/scene/bloc/scene_state.dart';
 
 class SceneBloc extends Bloc<SceneEvent, SceneState> {
-  SceneBloc(this._repository, this._session) : super(const SceneInitial()) {
+  SceneBloc(this._repository, this._subtitleRepository, this._session)
+      : super(const SceneInitial()) {
     on<SceneStarted>(_onStarted);
     on<TimestampChanged>(_onTimestampChanged);
     on<WindowSecondsChanged>(_onWindowChanged);
   }
 
   final SceneRepository _repository;
+  final SubtitleRepository _subtitleRepository;
   final TitleSessionHolder _session;
   var _windowSeconds = 30;
 
@@ -20,6 +23,12 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> {
     SceneStarted event,
     Emitter<SceneState> emit,
   ) async {
+    if (_session.subtitleDocument == null) {
+      final cached = await _subtitleRepository.getCachedForTitle(event.tmdbId);
+      if (cached != null) {
+        _session.setSubtitleDocument(cached);
+      }
+    }
     if (_session.subtitleDocument == null) {
       emit(const SceneMissingData());
       return;

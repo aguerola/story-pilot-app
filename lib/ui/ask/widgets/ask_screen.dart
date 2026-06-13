@@ -96,6 +96,18 @@ class _AskViewState extends State<_AskView> {
                             ),
                             ...answer.sources.map(Text.new),
                           ],
+                          if (answer.hasTokenUsage) ...[
+                            const SizedBox(height: 12),
+                            Text(
+                              'Tokens: ${answer.tokenUsageLabel}',
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant,
+                                  ),
+                            ),
+                          ],
                         ],
                       ),
                     ),

@@ -2,6 +2,7 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:storypilot/data/repositories/scene_repository.dart';
+import 'package:storypilot/data/repositories/subtitle_repository.dart';
 import 'package:storypilot/data/services/title_session_holder.dart';
 import 'package:storypilot/domain/models/cast_member.dart';
 import 'package:storypilot/domain/models/match_confidence.dart';
@@ -18,8 +19,11 @@ import 'package:storypilot/ui/scene/bloc/scene_state.dart';
 
 class MockSceneRepository extends Mock implements SceneRepository {}
 
+class MockSubtitleRepository extends Mock implements SubtitleRepository {}
+
 void main() {
   late MockSceneRepository repository;
+  late MockSubtitleRepository subtitleRepository;
   late TitleSessionHolder session;
   late SceneBloc bloc;
 
@@ -53,6 +57,9 @@ void main() {
 
   setUp(() {
     repository = MockSceneRepository();
+    subtitleRepository = MockSubtitleRepository();
+    when(() => subtitleRepository.getCachedForTitle(any()))
+        .thenAnswer((_) async => null);
     session = TitleSessionHolder()
       ..setTitleDetail(
         TitleDetail(
@@ -66,7 +73,7 @@ void main() {
         ),
       )
       ..setSubtitleDocument(document);
-    bloc = SceneBloc(repository, session);
+    bloc = SceneBloc(repository, subtitleRepository, session);
   });
 
   tearDown(() => bloc.close());
@@ -84,7 +91,7 @@ void main() {
       ).thenAnswer((_) async => Success(context));
       return bloc;
     },
-    act: (bloc) => bloc.add(const SceneStarted(initialTimestampMs: 2000)),
+    act: (bloc) => bloc.add(const SceneStarted(tmdbId: 1, initialTimestampMs: 2000)),
     expect: () => [
       const SceneLoading(),
       isA<SceneLoaded>(),
@@ -95,9 +102,9 @@ void main() {
     'emits missing data without subtitles',
     build: () {
       session.subtitleDocument = null;
-      return SceneBloc(repository, session);
+      return SceneBloc(repository, subtitleRepository, session);
     },
-    act: (bloc) => bloc.add(const SceneStarted()),
+    act: (bloc) => bloc.add(const SceneStarted(tmdbId: 1)),
     expect: () => [const SceneMissingData()],
   );
 }

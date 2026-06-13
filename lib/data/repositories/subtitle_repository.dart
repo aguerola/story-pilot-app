@@ -63,4 +63,8 @@ class SubtitleRepository {
     await _cache.saveSubtitle(document);
     return Success(document);
   }
+
+  Future<SubtitleDocument?> getCachedForTitle(int tmdbId) {
+    return _cache.getLatestSubtitleForTitle(tmdbId);
+  }
 }

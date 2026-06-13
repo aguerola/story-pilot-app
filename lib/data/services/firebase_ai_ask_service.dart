@@ -5,6 +5,7 @@ import 'package:storypilot/domain/failure.dart';
 import 'package:storypilot/domain/models/scene_answer.dart';
 import 'package:storypilot/domain/models/scene_context.dart';
 import 'package:storypilot/domain/result.dart';
+import 'package:storypilot/utils/debug_log.dart';
 
 class FirebaseAiAskService implements AskService {
   FirebaseAiAskService({GenerativeModel? model, LocalStubAskService? fallback})
@@ -54,11 +55,41 @@ Pregunta: $question
         return const Error(ServerFailure('Empty response from Gemini'));
       }
 
+      final usage = response.usageMetadata;
+
+      // #region agent log
+      final prompt = usage?.promptTokenCount;
+      final responseTok = usage?.candidatesTokenCount;
+      final total = usage?.totalTokenCount;
+      final thoughts = usage?.thoughtsTokenCount;
+      debugLog(
+        location: 'firebase_ai_ask_service.dart:ask',
+        message: 'usageMetadata raw values',
+        hypothesisId: 'A-thoughts',
+        runId: 'post-fix',
+        data: {
+          'promptTokenCount': prompt,
+          'candidatesTokenCount': responseTok,
+          'totalTokenCount': total,
+          'thoughtsTokenCount': thoughts,
+          'sumPromptPlusResponse': (prompt ?? 0) + (responseTok ?? 0),
+          'sumAllThree': (prompt ?? 0) + (responseTok ?? 0) + (thoughts ?? 0),
+          'deltaTotalMinusSum': total != null
+              ? total - ((prompt ?? 0) + (responseTok ?? 0))
+              : null,
+        },
+      );
+      // #endregion
+
       return Success(
         SceneAnswer(
           question: question,
           answer: text,
           sources: context.dialogueText.split('\n').take(2).toList(),
+          promptTokens: usage?.promptTokenCount,
+          responseTokens: usage?.candidatesTokenCount,
+          thoughtsTokens: usage?.thoughtsTokenCount,
+          totalTokens: usage?.totalTokenCount,
         ),
       );
     } catch (_) {
