@@ -1,7 +1,9 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:storypilot/config/gemini_model.dart';
 import 'package:storypilot/data/repositories/ask_repository.dart';
+import 'package:storypilot/data/services/settings_service.dart';
 import 'package:storypilot/domain/models/cast_member.dart';
 import 'package:storypilot/domain/models/match_confidence.dart';
 import 'package:storypilot/domain/models/scene_answer.dart';
@@ -13,8 +15,11 @@ import 'package:storypilot/ui/ask/bloc/ask_state.dart';
 
 class MockAskRepository extends Mock implements AskRepository {}
 
+class MockSettingsService extends Mock implements SettingsService {}
+
 void main() {
   late MockAskRepository repository;
+  late MockSettingsService settingsService;
   late AskBloc bloc;
 
   final context = SceneContext(
@@ -40,7 +45,9 @@ void main() {
 
   setUp(() {
     repository = MockAskRepository();
-    bloc = AskBloc(repository)..add(AskStarted(context));
+    settingsService = MockSettingsService();
+    when(() => settingsService.geminiModel).thenReturn(GeminiModel.defaultModel);
+    bloc = AskBloc(repository, settingsService)..add(AskStarted(context));
   });
 
   tearDown(() => bloc.close());
@@ -49,7 +56,11 @@ void main() {
     'emits answer on success',
     build: () {
       when(
-        () => repository.ask(context: context, question: '¿Quién está?'),
+        () => repository.ask(
+          context: context,
+          question: '¿Quién está?',
+          model: GeminiModel.defaultModel,
+        ),
       ).thenAnswer(
         (_) async => const Success(
           SceneAnswer(question: '¿Quién está?', answer: 'Neo'),
@@ -66,10 +77,14 @@ void main() {
 
   blocTest<AskBloc, AskState>(
     'resets to initial on context update and uses new context',
-    build: () => AskBloc(repository)..add(AskStarted(context)),
+    build: () => AskBloc(repository, settingsService)..add(AskStarted(context)),
     act: (bloc) async {
       when(
-        () => repository.ask(context: context, question: '¿Quién está?'),
+        () => repository.ask(
+          context: context,
+          question: '¿Quién está?',
+          model: GeminiModel.defaultModel,
+        ),
       ).thenAnswer(
         (_) async => const Success(
           SceneAnswer(question: '¿Quién está?', answer: 'Neo'),
@@ -91,6 +106,7 @@ void main() {
         () => repository.ask(
           context: updatedContext,
           question: '¿Qué pasa?',
+          model: GeminiModel.defaultModel,
         ),
       ).thenAnswer(
         (_) async => const Success(

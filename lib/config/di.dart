@@ -85,7 +85,7 @@ Future<void> configureDependencies() async {
         getIt<TitleSessionHolder>(),
       ),
     )
-    ..registerFactory(() => AskBloc(getIt<AskRepository>()));
+    ..registerFactory(() => AskBloc(getIt<AskRepository>(), getIt<SettingsService>()));
 }
 
 AskService _createAskService() {

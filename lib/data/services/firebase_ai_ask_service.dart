@@ -12,22 +12,23 @@ import 'package:storypilot/utils/timestamp_utils.dart';
 
 class FirebaseAiAskService implements AskService {
   FirebaseAiAskService({
-    GenerativeModel? model,
     LocalStubAskService? fallback,
-    GeminiModel geminiModel = GeminiModel.defaultModel,
-  })  : _geminiModel = geminiModel,
-        _model = model ??
-            FirebaseAI.googleAI().generativeModel(
-              model: geminiModel.id,
-              systemInstruction: Content.system(_systemInstruction),
-            ),
-        _fallback = fallback ?? LocalStubAskService();
+  }) : _fallback = fallback ?? LocalStubAskService();
 
   static const model = GeminiModel.defaultModel;
 
-  final GeminiModel _geminiModel;
-  final GenerativeModel _model;
   final LocalStubAskService _fallback;
+  final Map<GeminiModel, GenerativeModel> _models = {};
+
+  GenerativeModel _modelFor(GeminiModel geminiModel) {
+    return _models.putIfAbsent(
+      geminiModel,
+      () => FirebaseAI.googleAI().generativeModel(
+        model: geminiModel.id,
+        systemInstruction: Content.system(_systemInstruction),
+      ),
+    );
+  }
 
   static const _systemInstruction = '''
 Eres un asistente que explica escenas concretas de películas y series en un momento exacto del vídeo.
@@ -47,56 +48,167 @@ Reglas estrictas:
   Future<Result<SceneAnswer>> ask({
     required SceneContext context,
     required String question,
+    GeminiModel model = GeminiModel.defaultModel,
   }) async {
     try {
-      final response = await _model.generateContent([
-        Content.text(buildAskPromptContent(context, question)),
-      ]);
-
-      final text = response.text?.trim();
-      if (text == null || text.isEmpty) {
-        developer.log(
-          'Gemini returned empty text (promptFeedback: ${response.promptFeedback})',
-          name: 'FirebaseAiAskService',
-        );
-        return const Error(ServerFailure('Empty response from Gemini'));
-      }
-
-      final usage = response.usageMetadata;
-
-      return Success(
-        SceneAnswer(
-          question: question,
-          answer: text,
-          sources: context.dialogueText.split('\n').take(2).toList(),
-          promptTokens: usage?.promptTokenCount,
-          responseTokens: usage?.candidatesTokenCount,
-          thoughtsTokens: usage?.thoughtsTokenCount,
-          totalTokens: usage?.totalTokenCount,
-          modelId: _geminiModel.id,
-        ),
+      return await _generateAnswer(
+        context: context,
+        question: question,
+        model: model,
       );
     } catch (error, stackTrace) {
-      developer.log(
-        'generateContent failed, using fallback',
-        name: 'FirebaseAiAskService',
-        error: error,
-        stackTrace: stackTrace,
-      );
-      final fallback = await _fallback.ask(context: context, question: question);
-      if (fallback is Success<SceneAnswer>) {
-        return Success(
-          SceneAnswer(
-            question: question,
-            answer:
-                '${fallback.data.answer}\n\n(Respuesta de respaldo: Firebase AI no disponible)',
-            sources: fallback.data.sources,
+      if (isQuotaExceeded(error)) {
+        var quotaMessage = quotaErrorMessage(error);
+        developer.log(
+          quotaMessage,
+          name: 'FirebaseAiAskService',
+          error: error,
+          stackTrace: stackTrace,
+        );
+
+        if (model == GeminiModel.flash25) {
+          try {
+            return await _generateAnswer(
+              context: context,
+              question: question,
+              model: GeminiModel.flashLite25,
+            );
+          } catch (liteError, liteStackTrace) {
+            if (!isQuotaExceeded(liteError)) {
+              return _stubFallback(
+                context: context,
+                question: question,
+                model: model,
+                error: liteError,
+                stackTrace: liteStackTrace,
+              );
+            }
+            developer.log(
+              quotaErrorMessage(liteError),
+              name: 'FirebaseAiAskService',
+              error: liteError,
+              stackTrace: liteStackTrace,
+            );
+            quotaMessage = quotaErrorMessage(liteError);
+          }
+        }
+
+        final retryAfterSeconds = parseQuotaRetrySeconds(quotaMessage);
+        return Error(
+          QuotaFailure(
+            quotaFailureMessage(
+              modelLabel: model.shortLabel,
+              retryAfterSeconds: retryAfterSeconds,
+            ),
+            retryAfterSeconds: retryAfterSeconds,
           ),
         );
       }
-      return const Error(NetworkFailure('Firebase AI unavailable'));
+
+      return _stubFallback(
+        context: context,
+        question: question,
+        model: model,
+        error: error,
+        stackTrace: stackTrace,
+      );
     }
   }
+
+  Future<Result<SceneAnswer>> _stubFallback({
+    required SceneContext context,
+    required String question,
+    required GeminiModel model,
+    required Object error,
+    required StackTrace stackTrace,
+  }) async {
+    developer.log(
+      'generateContent failed, using fallback',
+      name: 'FirebaseAiAskService',
+      error: error,
+      stackTrace: stackTrace,
+    );
+    final fallback = await _fallback.ask(
+      context: context,
+      question: question,
+      model: model,
+    );
+    if (fallback is Success<SceneAnswer>) {
+      return Success(
+        SceneAnswer(
+          question: question,
+          answer:
+              '${fallback.data.answer}\n\n(Respuesta de respaldo: Firebase AI no disponible)',
+          sources: fallback.data.sources,
+        ),
+      );
+    }
+    return const Error(NetworkFailure('Firebase AI unavailable'));
+  }
+
+  Future<Result<SceneAnswer>> _generateAnswer({
+    required SceneContext context,
+    required String question,
+    required GeminiModel model,
+  }) async {
+    final response = await _modelFor(model).generateContent([
+      Content.text(buildAskPromptContent(context, question)),
+    ]);
+
+    final text = response.text?.trim();
+    if (text == null || text.isEmpty) {
+      developer.log(
+        'Gemini returned empty text (promptFeedback: ${response.promptFeedback})',
+        name: 'FirebaseAiAskService',
+      );
+      return const Error(ServerFailure('Empty response from Gemini'));
+    }
+
+    final usage = response.usageMetadata;
+
+    return Success(
+      SceneAnswer(
+        question: question,
+        answer: text,
+        sources: context.dialogueText.split('\n').take(2).toList(),
+        promptTokens: usage?.promptTokenCount,
+        responseTokens: usage?.candidatesTokenCount,
+        thoughtsTokens: usage?.thoughtsTokenCount,
+        totalTokens: usage?.totalTokenCount,
+        modelId: model.id,
+      ),
+    );
+  }
+}
+
+bool isQuotaExceeded(Object error) {
+  if (error is FirebaseAIException) {
+    return error.message.toLowerCase().contains('quota');
+  }
+  return error.toString().toLowerCase().contains('quota exceeded');
+}
+
+String quotaErrorMessage(Object error) {
+  if (error is FirebaseAIException) return error.message;
+  return error.toString();
+}
+
+int? parseQuotaRetrySeconds(String message) {
+  final match = RegExp(r'retry in (\d+(?:\.\d+)?)s', caseSensitive: false)
+      .firstMatch(message);
+  if (match == null) return null;
+  return double.parse(match.group(1)!).ceil();
+}
+
+String quotaFailureMessage({
+  required String modelLabel,
+  int? retryAfterSeconds,
+}) {
+  final retryHint = retryAfterSeconds == null
+      ? 'Espera un momento e inténtalo de nuevo.'
+      : 'Espera unos ${retryAfterSeconds}s e inténtalo de nuevo.';
+  return 'Has alcanzado el límite de peticiones de Gemini ($modelLabel). '
+      '$retryHint También puedes cambiar a Lite en el selector de modelo.';
 }
 
 String buildAskPromptContent(SceneContext context, String question) {

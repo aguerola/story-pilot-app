@@ -22,6 +22,11 @@ enum GeminiModel {
   final double inputPerMillionUsd;
   final double outputPerMillionUsd;
 
+  String get shortLabel => switch (this) {
+        flashLite25 => 'Lite',
+        flash25 => 'Flash',
+      };
+
   static const tierLabel = 'Standard';
   static const defaultModel = flashLite25;
 

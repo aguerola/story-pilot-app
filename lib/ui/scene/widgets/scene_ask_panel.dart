@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:storypilot/config/di.dart';
+import 'package:storypilot/config/gemini_model.dart';
+import 'package:storypilot/data/services/settings_service.dart';
 import 'package:storypilot/ui/ask/bloc/ask_bloc.dart';
 import 'package:storypilot/ui/ask/bloc/ask_event.dart';
 import 'package:storypilot/ui/ask/bloc/ask_state.dart';
@@ -18,6 +21,13 @@ class SceneAskPanel extends StatefulWidget {
 
 class _SceneAskPanelState extends State<SceneAskPanel> {
   final _controller = TextEditingController();
+  late GeminiModel _selectedModel;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedModel = getIt<SettingsService>().geminiModel;
+  }
 
   @override
   void dispose() {
@@ -25,14 +35,47 @@ class _SceneAskPanelState extends State<SceneAskPanel> {
     super.dispose();
   }
 
+  Future<void> _onModelChanged(bool useFlash) async {
+    final model = useFlash ? GeminiModel.flash25 : GeminiModel.flashLite25;
+    setState(() => _selectedModel = model);
+    await getIt<SettingsService>().setGeminiModel(model);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final mutedStyle = theme.textTheme.bodySmall?.copyWith(
+      color: theme.colorScheme.onSurfaceVariant,
+    );
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Preguntar sobre la escena',
-          style: Theme.of(context).textTheme.titleMedium,
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                'Preguntar sobre la escena',
+                style: theme.textTheme.titleMedium,
+              ),
+            ),
+            Text(
+              GeminiModel.flashLite25.shortLabel,
+              style: _selectedModel == GeminiModel.flashLite25
+                  ? theme.textTheme.labelLarge
+                  : mutedStyle,
+            ),
+            Switch(
+              value: _selectedModel == GeminiModel.flash25,
+              onChanged: widget.enabled ? _onModelChanged : null,
+            ),
+            Text(
+              GeminiModel.flash25.shortLabel,
+              style: _selectedModel == GeminiModel.flash25
+                  ? theme.textTheme.labelLarge
+                  : mutedStyle,
+            ),
+          ],
         ),
         const SizedBox(height: 8),
         Expanded(

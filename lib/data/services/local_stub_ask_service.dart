@@ -1,3 +1,4 @@
+import 'package:storypilot/config/gemini_model.dart';
 import 'package:storypilot/data/services/ask_service.dart';
 import 'package:storypilot/domain/models/scene_answer.dart';
 import 'package:storypilot/domain/models/scene_context.dart';
@@ -8,6 +9,7 @@ class LocalStubAskService implements AskService {
   Future<Result<SceneAnswer>> ask({
     required SceneContext context,
     required String question,
+    GeminiModel model = GeminiModel.defaultModel,
   }) async {
     final lower = question.toLowerCase();
     if (lower.contains('quién') ||
