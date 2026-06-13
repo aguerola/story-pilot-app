@@ -21,8 +21,6 @@ import 'package:storypilot/ui/scene/widgets/scene_ask_panel.dart';
 import 'package:storypilot/ui/scene/widgets/season_episode_selector.dart';
 import 'package:storypilot/utils/timestamp_utils.dart';
 
-const _wideLayoutBreakpoint = 840.0;
-
 class SceneScreen extends StatelessWidget {
   const SceneScreen({super.key, required this.id});
 
@@ -225,37 +223,20 @@ class _SceneViewState extends State<_SceneView> {
                     onChanged: _onSliderChanged,
                     onChangeEnd: _onSliderReleased,
                   ),
-                  const SizedBox(height: 8),
                   Expanded(
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        final isWide =
-                            constraints.maxWidth >= _wideLayoutBreakpoint;
-                        final scenePanel = _SceneContextPanel(state: state);
-                        final askPanel = SceneAskPanel(enabled: askEnabled);
-
-                        if (isWide) {
-                          return Row(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Expanded(flex: 11, child: scenePanel),
-                              const VerticalDivider(width: 24),
-                              Expanded(flex: 9, child: askPanel),
-                            ],
-                          );
-                        }
-
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Expanded(flex: 11, child: scenePanel),
-                            const Divider(height: 24),
-                            Expanded(flex: 9, child: askPanel),
-                          ],
-                        );
-                      },
+                    child: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _SceneContextPanel(state: state),
+                          const Divider(height: 32),
+                          SceneAskScrollContent(enabled: askEnabled),
+                        ],
+                      ),
                     ),
                   ),
+                  const SizedBox(height: 8),
+                  SceneAskInputBar(enabled: askEnabled),
                 ],
               ),
             );
@@ -274,11 +255,16 @@ class _SceneContextPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return switch (state) {
-      SceneInitial() || SceneLoading() =>
-        const Center(child: LinearProgressIndicator()),
+      SceneInitial() || SceneLoading() => const Padding(
+          padding: EdgeInsets.symmetric(vertical: 24),
+          child: LinearProgressIndicator(),
+        ),
       SceneAwaitingEpisode() => const _AwaitingEpisodePrompt(),
       SceneAwaitingTimestamp() => const _AwaitingTimestampPrompt(),
-      SceneFailure(:final failure) => Center(child: Text(failure.message)),
+      SceneFailure(:final failure) => Padding(
+          padding: const EdgeInsets.symmetric(vertical: 24),
+          child: Center(child: Text(failure.message)),
+        ),
       SceneLoaded(:final context) => _SceneLoadedContent(sceneContext: context),
     };
   }
@@ -289,8 +275,11 @@ class _AwaitingEpisodePrompt extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
-      child: Text('Selecciona temporada y capítulo para continuar'),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 24),
+      child: Center(
+        child: Text('Selecciona temporada y capítulo para continuar'),
+      ),
     );
   }
 }
@@ -301,34 +290,31 @@ class _AwaitingTimestampPrompt extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.schedule_outlined,
-              size: 40,
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 24),
+      child: Column(
+        children: [
+          Icon(
+            Icons.schedule_outlined,
+            size: 40,
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            '¿Por qué minuto vas?',
+            style: theme.textTheme.titleMedium,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Indica el momento que estás viendo (arriba) y te explico '
+            'qué está pasando.',
+            style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
-            const SizedBox(height: 12),
-            Text(
-              '¿Por qué minuto vas?',
-              style: theme.textTheme.titleMedium,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Indica el momento que estás viendo (arriba) y te explico '
-              'qué está pasando.',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
+            textAlign: TextAlign.center,
+          ),
+        ],
       ),
     );
   }
@@ -379,7 +365,8 @@ class _SceneBriefContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return ListView(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('Qué está pasando', style: theme.textTheme.titleMedium),
         const SizedBox(height: 8),
@@ -414,7 +401,8 @@ class _SceneBriefSkeleton extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Skeletonizer.zone(
-      child: ListView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('Qué está pasando', style: theme.textTheme.titleMedium),
           const SizedBox(height: 8),

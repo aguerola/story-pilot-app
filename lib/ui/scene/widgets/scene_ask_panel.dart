@@ -20,26 +20,13 @@ const _fallbackSuggestedQuestions = [
   '¿Qué significa esta conversación?',
 ];
 
-class SceneAskPanel extends StatefulWidget {
-  const SceneAskPanel({
+class SceneAskScrollContent extends StatelessWidget {
+  const SceneAskScrollContent({
     super.key,
     required this.enabled,
   });
 
   final bool enabled;
-
-  @override
-  State<SceneAskPanel> createState() => _SceneAskPanelState();
-}
-
-class _SceneAskPanelState extends State<SceneAskPanel> {
-  final _controller = TextEditingController();
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
 
   bool _isAuthenticated(BuildContext context) =>
       context.watch<AuthBloc>().state is AuthAuthenticated;
@@ -47,7 +34,7 @@ class _SceneAskPanelState extends State<SceneAskPanel> {
   int _remainingQuestions() => getIt<UsageLimitService>().remainingQuestions();
 
   bool _canSubmit(BuildContext context) {
-    if (!widget.enabled) return false;
+    if (!enabled) return false;
     if (_isAuthenticated(context)) return true;
     return _remainingQuestions() > 0;
   }
@@ -79,74 +66,115 @@ class _SceneAskPanelState extends State<SceneAskPanel> {
           ),
         ],
         const SizedBox(height: 8),
+        if (!enabled)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: Center(
+              child: Text('Indica un momento para empezar a preguntar'),
+            ),
+          )
+        else
+          BlocBuilder<AskBloc, AskState>(
+            builder: (context, state) => switch (state) {
+              AskInitial() => _SuggestedQuestions(
+                  enabled: canSubmit,
+                  onSelected: (question) => _submit(context, question),
+                ),
+              AskAnswering(:final question) => Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('P: $question'),
+                    const SizedBox(height: 16),
+                    const LinearProgressIndicator(),
+                  ],
+                ),
+              AskAnswered(:final answer) => Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('P: ${answer.question}'),
+                    const SizedBox(height: 12),
+                    Text(
+                      'R:',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    Text(answer.answer),
+                    DebugUsage(answer.usage),
+                  ],
+                ),
+              AskFailure(:final failure) =>
+                Center(child: Text(failure.message)),
+              AskMissingContext() => const Center(
+                  child: Text('Contexto de escena no disponible'),
+                ),
+              AskAuthRequired() => _AuthRequiredPrompt(
+                  message: const AuthRequiredFailure().message,
+                ),
+            },
+          ),
+      ],
+    );
+  }
+
+  void _submit(BuildContext context, String question) {
+    if (question.trim().isEmpty) return;
+    context.read<AskBloc>().add(AskQuestionSubmitted(question));
+  }
+}
+
+class SceneAskInputBar extends StatefulWidget {
+  const SceneAskInputBar({
+    super.key,
+    required this.enabled,
+  });
+
+  final bool enabled;
+
+  @override
+  State<SceneAskInputBar> createState() => _SceneAskInputBarState();
+}
+
+class _SceneAskInputBarState extends State<SceneAskInputBar> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  bool _isAuthenticated(BuildContext context) =>
+      context.watch<AuthBloc>().state is AuthAuthenticated;
+
+  int _remainingQuestions() => getIt<UsageLimitService>().remainingQuestions();
+
+  bool _canSubmit(BuildContext context) {
+    if (!widget.enabled) return false;
+    if (_isAuthenticated(context)) return true;
+    return _remainingQuestions() > 0;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final canSubmit = _canSubmit(context);
+
+    return Row(
+      children: [
         Expanded(
-          child: !widget.enabled
-              ? const Center(
-                  child: Text('Indica un momento para empezar a preguntar'),
-                )
-              : BlocBuilder<AskBloc, AskState>(
-                  builder: (context, state) => switch (state) {
-                    AskInitial() => _SuggestedQuestions(
-                        enabled: canSubmit,
-                        onSelected: (question) => _submit(context, question),
-                      ),
-                    AskAnswering(:final question) => Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('P: $question'),
-                          const SizedBox(height: 16),
-                          const LinearProgressIndicator(),
-                        ],
-                      ),
-                    AskAnswered(:final answer) => SingleChildScrollView(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('P: ${answer.question}'),
-                            const SizedBox(height: 12),
-                            Text(
-                              'R:',
-                              style: Theme.of(context).textTheme.titleMedium,
-                            ),
-                            Text(answer.answer),
-                            DebugUsage(answer.usage),
-                          ],
-                        ),
-                      ),
-                    AskFailure(:final failure) =>
-                      Center(child: Text(failure.message)),
-                    AskMissingContext() => const Center(
-                        child: Text('Contexto de escena no disponible'),
-                      ),
-                    AskAuthRequired() => _AuthRequiredPrompt(
-                        message: const AuthRequiredFailure().message,
-                      ),
-                  },
-                ),
+          child: TextField(
+            controller: _controller,
+            enabled: canSubmit,
+            decoration: InputDecoration(
+              hintText: canSubmit
+                  ? '¿Quién está en la escena?'
+                  : 'Inicia sesión para seguir preguntando',
+            ),
+            onSubmitted: canSubmit ? (value) => _submit(context, value) : null,
+          ),
         ),
-        Row(
-          children: [
-            Expanded(
-              child: TextField(
-                controller: _controller,
-                enabled: canSubmit,
-                decoration: InputDecoration(
-                  hintText: canSubmit
-                      ? '¿Quién está en la escena?'
-                      : 'Inicia sesión para seguir preguntando',
-                ),
-                onSubmitted: canSubmit
-                    ? (value) => _submit(context, value)
-                    : null,
-              ),
-            ),
-            IconButton(
-              onPressed: canSubmit
-                  ? () => _submit(context, _controller.text)
-                  : null,
-              icon: const Icon(Icons.send),
-            ),
-          ],
+        IconButton(
+          onPressed:
+              canSubmit ? () => _submit(context, _controller.text) : null,
+          icon: const Icon(Icons.send),
         ),
       ],
     );
@@ -168,55 +196,50 @@ class _SuggestedQuestions extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final briefState = context.watch<SceneBriefCubit>().state;
-    // While the AI is generating questions, show a skeleton instead of the
-    // static fallback list (which would flash and then change).
     final isLoadingBrief =
         briefState is SceneBriefInitial || briefState is SceneBriefLoading;
-    // On Ready use the AI's questions; on failure fall back to the static list.
     final questions = briefState is SceneBriefReady &&
             briefState.questions.isNotEmpty
         ? briefState.questions
         : _fallbackSuggestedQuestions;
 
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Pregunta quién está en la escena o qué ocurre',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-          ),
-          const SizedBox(height: 12),
-          if (isLoadingBrief)
-            const Skeletonizer.zone(
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  Bone.button(width: 150),
-                  Bone.button(width: 120),
-                  Bone.button(width: 170),
-                  Bone.button(width: 140),
-                ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Pregunta quién está en la escena o qué ocurre',
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
-            )
-          else
-            Wrap(
+        ),
+        const SizedBox(height: 12),
+        if (isLoadingBrief)
+          const Skeletonizer.zone(
+            child: Wrap(
               spacing: 8,
               runSpacing: 8,
-              children: questions
-                  .map(
-                    (question) => ActionChip(
-                      label: Text(question),
-                      onPressed: enabled ? () => onSelected(question) : null,
-                    ),
-                  )
-                  .toList(),
+              children: [
+                Bone.button(width: 150),
+                Bone.button(width: 120),
+                Bone.button(width: 170),
+                Bone.button(width: 140),
+              ],
             ),
-        ],
-      ),
+          )
+        else
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: questions
+                .map(
+                  (question) => ActionChip(
+                    label: Text(question),
+                    onPressed: enabled ? () => onSelected(question) : null,
+                  ),
+                )
+                .toList(),
+          ),
+      ],
     );
   }
 }
