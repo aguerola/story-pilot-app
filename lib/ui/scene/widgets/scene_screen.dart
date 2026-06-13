@@ -8,6 +8,7 @@ import 'package:storypilot/domain/models/scene_context.dart';
 import 'package:storypilot/ui/ask/bloc/ask_bloc.dart';
 import 'package:storypilot/ui/ask/bloc/ask_event.dart';
 import 'package:storypilot/ui/core/ui/character_chip.dart';
+import 'package:storypilot/ui/core/ui/story_pilot_app_bar.dart';
 import 'package:storypilot/ui/core/ui/debug_usage.dart';
 import 'package:storypilot/ui/scene/bloc/scene_bloc.dart';
 import 'package:storypilot/ui/scene/bloc/scene_brief_cubit.dart';
@@ -161,7 +162,7 @@ class _SceneViewState extends State<_SceneView> {
         }
       },
       child: Scaffold(
-        appBar: AppBar(title: const Text('¿Qué está pasando?')),
+        appBar: StoryPilotAppBar(title: const Text('¿Qué está pasando?')),
         body: BlocBuilder<SceneBloc, SceneState>(
           builder: (context, state) {
             if (state is SceneLoaded || state is SceneAwaitingTimestamp) {

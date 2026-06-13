@@ -63,7 +63,7 @@ class _DetailActionsState extends State<DetailActions> {
         ),
       );
     }
-    context.go('/title/${widget.titleId}/scene');
+    context.push('/title/${widget.titleId}/scene');
   }
 
   @override

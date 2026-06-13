@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:storypilot/config/di.dart';
 import 'package:storypilot/ui/auth/widgets/auth_app_bar_actions.dart';
+import 'package:storypilot/ui/core/ui/story_pilot_app_bar.dart';
 import 'package:storypilot/ui/search/bloc/search_bloc.dart';
 import 'package:storypilot/ui/search/bloc/search_event.dart';
 import 'package:storypilot/ui/search/bloc/search_state.dart';
@@ -38,7 +39,7 @@ class _SearchViewState extends State<_SearchView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
+      appBar: StoryPilotAppBar(
         title: const Text('Scene Context'),
         actions: [AuthAppBarActions()],
       ),
@@ -100,7 +101,7 @@ class _SearchViewState extends State<_SearchView> {
                                 '${item.mediaType.name.toUpperCase()}'
                                 '${item.year != null ? ' · ${item.year}' : ''}',
                               ),
-                              onTap: () => context.go(
+                              onTap: () => context.push(
                                 '/title/${item.id}?type=${item.mediaType.name}',
                               ),
                             );

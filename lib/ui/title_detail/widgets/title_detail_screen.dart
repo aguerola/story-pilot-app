@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:storypilot/config/di.dart';
 import 'package:storypilot/domain/models/media_type.dart';
+import 'package:storypilot/ui/core/ui/story_pilot_app_bar.dart';
 import 'package:storypilot/ui/title_detail/bloc/title_detail_bloc.dart';
 import 'package:storypilot/ui/title_detail/bloc/title_detail_event.dart';
 import 'package:storypilot/ui/title_detail/bloc/title_detail_state.dart';
@@ -40,7 +41,7 @@ class _TitleDetailView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Detalles')),
+      appBar: StoryPilotAppBar(title: const Text('Detalles')),
       body: BlocBuilder<TitleDetailBloc, TitleDetailState>(
         builder: (context, state) => switch (state) {
           TitleDetailInitial() || TitleDetailLoading() => const Center(

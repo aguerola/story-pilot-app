@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:storypilot/ui/auth/bloc/auth_bloc.dart';
 import 'package:storypilot/ui/auth/bloc/auth_event.dart';
 import 'package:storypilot/ui/auth/bloc/auth_state.dart';
+import 'package:storypilot/ui/core/ui/story_pilot_app_bar.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -24,7 +25,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Iniciar sesión')),
+      appBar: StoryPilotAppBar(title: const Text('Iniciar sesión')),
       body: BlocConsumer<AuthBloc, AuthState>(
         listenWhen: (previous, current) =>
             current is AuthAuthenticated || current is AuthFailure,

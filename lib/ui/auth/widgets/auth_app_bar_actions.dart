@@ -35,7 +35,7 @@ class AuthAppBarActions extends StatelessWidget {
             ],
           ),
         _ => TextButton(
-            onPressed: () => context.go('/login'),
+            onPressed: () => context.push('/login'),
             child: const Text('Iniciar sesión'),
           ),
       },

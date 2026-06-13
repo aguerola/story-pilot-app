@@ -235,7 +235,7 @@ class _AuthRequiredPrompt extends StatelessWidget {
           Text(message, textAlign: TextAlign.center),
           const SizedBox(height: 16),
           FilledButton(
-            onPressed: () => context.go('/login'),
+            onPressed: () => context.push('/login'),
             child: const Text('Iniciar sesión'),
           ),
         ],
