@@ -108,6 +108,18 @@ class _AskViewState extends State<_AskView> {
                                   ),
                             ),
                           ],
+                          if (answer.costLabel != null) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              'Coste estimado: ${answer.costLabel}',
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant,
+                                  ),
+                            ),
+                          ],
                         ],
                       ),
                     ),

@@ -10,10 +10,12 @@ class FirebaseAiAskService implements AskService {
   FirebaseAiAskService({GenerativeModel? model, LocalStubAskService? fallback})
       : _model = model ??
             FirebaseAI.googleAI().generativeModel(
-              model: 'gemini-2.5-flash',
+              model: modelId,
               systemInstruction: Content.system(_systemInstruction),
             ),
         _fallback = fallback ?? LocalStubAskService();
+
+  static const modelId = 'gemini-2.5-flash';
 
   final GenerativeModel _model;
   final LocalStubAskService _fallback;
@@ -65,6 +67,7 @@ Pregunta: $question
           responseTokens: usage?.candidatesTokenCount,
           thoughtsTokens: usage?.thoughtsTokenCount,
           totalTokens: usage?.totalTokenCount,
+          modelId: modelId,
         ),
       );
     } catch (_) {
