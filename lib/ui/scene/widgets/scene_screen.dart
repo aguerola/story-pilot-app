@@ -49,6 +49,9 @@ class _SceneViewState extends State<_SceneView> {
       _sliderValue = value;
       _timeController.text = formatMsToTimestamp(value.toInt());
     });
+  }
+
+  void _onSliderReleased(double value) {
     context.read<SceneBloc>().add(TimestampChanged(value.toInt()));
   }
 
@@ -128,6 +131,7 @@ class _SceneViewState extends State<_SceneView> {
                   value: _sliderValue.clamp(0, _maxMs),
                   max: _maxMs,
                   onChanged: _onSliderChanged,
+                  onChangeEnd: _onSliderReleased,
                 ),
                 if (state is SceneLoading)
                   const LinearProgressIndicator()
