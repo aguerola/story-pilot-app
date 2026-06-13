@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 import 'package:storypilot/config/di.dart';
 import 'package:storypilot/data/services/usage_limit_service.dart';
 import 'package:storypilot/domain/failure.dart';
@@ -164,8 +165,12 @@ class _SuggestedQuestions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Prefer the AI's scene-specific questions; fall back to the static list.
     final briefState = context.watch<SceneBriefCubit>().state;
+    // While the AI is generating questions, show a skeleton instead of the
+    // static fallback list (which would flash and then change).
+    final isLoadingBrief =
+        briefState is SceneBriefInitial || briefState is SceneBriefLoading;
+    // On Ready use the AI's questions; on failure fall back to the static list.
     final questions = briefState is SceneBriefReady &&
             briefState.questions.isNotEmpty
         ? briefState.questions
@@ -182,18 +187,32 @@ class _SuggestedQuestions extends StatelessWidget {
                 ),
           ),
           const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: questions
-                .map(
-                  (question) => ActionChip(
-                    label: Text(question),
-                    onPressed: enabled ? () => onSelected(question) : null,
-                  ),
-                )
-                .toList(),
-          ),
+          if (isLoadingBrief)
+            const Skeletonizer.zone(
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  Bone.button(width: 150),
+                  Bone.button(width: 120),
+                  Bone.button(width: 170),
+                  Bone.button(width: 140),
+                ],
+              ),
+            )
+          else
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: questions
+                  .map(
+                    (question) => ActionChip(
+                      label: Text(question),
+                      onPressed: enabled ? () => onSelected(question) : null,
+                    ),
+                  )
+                  .toList(),
+            ),
         ],
       ),
     );

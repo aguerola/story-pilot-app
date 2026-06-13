@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 import 'package:storypilot/config/di.dart';
 import 'package:storypilot/data/services/title_session_holder.dart';
 import 'package:storypilot/domain/models/scene_context.dart';
@@ -283,76 +284,113 @@ class _SceneLoadedContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return BlocBuilder<SceneBriefCubit, SceneBriefState>(
-      builder: (context, briefState) {
-        // Characters: prefer the AI's selection; while loading or on failure
-        // fall back to the heuristic ones so chips appear instantly.
-        final characters = switch (briefState) {
-          SceneBriefReady(:final characters) =>
-            characters.isNotEmpty ? characters : sceneContext.characters,
-          _ => sceneContext.characters,
-        };
-        return ListView(
-          children: [
-            Text('Qué está pasando', style: theme.textTheme.titleMedium),
-            const SizedBox(height: 8),
-            _SceneSummary(state: briefState),
-            const SizedBox(height: 20),
-            if (characters.isNotEmpty) ...[
-              Text('Personajes en escena', style: theme.textTheme.titleMedium),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: characters
-                    .map((c) => CharacterChip(character: c))
-                    .toList(),
-              ),
-            ],
-          ],
-        );
+      builder: (context, briefState) => switch (briefState) {
+        // While the AI is working, show a skeleton — no provisional results.
+        SceneBriefInitial() || SceneBriefLoading() => const _SceneBriefSkeleton(),
+        SceneBriefReady(:final summary, :final characters) => _SceneBriefContent(
+            summary: summary,
+            characters: characters,
+          ),
+        // Only on a real failure fall back to the heuristic characters.
+        SceneBriefFailure() => _SceneBriefContent(
+            summary:
+                'No se pudo generar el resumen automático. Puedes preguntar abajo.',
+            characters: sceneContext.characters,
+            mutedSummary: true,
+          ),
       },
     );
   }
 }
 
-class _SceneSummary extends StatelessWidget {
-  const _SceneSummary({required this.state});
+class _SceneBriefContent extends StatelessWidget {
+  const _SceneBriefContent({
+    required this.summary,
+    required this.characters,
+    this.mutedSummary = false,
+  });
 
-  final SceneBriefState state;
+  final String summary;
+  final List<SceneCharacter> characters;
+  final bool mutedSummary;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return switch (state) {
-      SceneBriefInitial() || SceneBriefLoading() => Row(
-          children: [
-            const SizedBox(
-              width: 16,
-              height: 16,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            ),
-            const SizedBox(width: 12),
-            Text(
-              'Analizando la escena…',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
-        ),
-      SceneBriefReady(:final summary) => Text(
+    return ListView(
+      children: [
+        Text('Qué está pasando', style: theme.textTheme.titleMedium),
+        const SizedBox(height: 8),
+        Text(
           summary,
-          style: theme.textTheme.bodyLarge,
+          style: mutedSummary
+              ? theme.textTheme.bodyMedium
+                  ?.copyWith(color: theme.colorScheme.onSurfaceVariant)
+              : theme.textTheme.bodyLarge,
         ),
-      SceneBriefFailure() => Text(
-          'No se pudo generar el resumen automático. Puedes preguntar abajo.',
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
+        const SizedBox(height: 20),
+        if (characters.isNotEmpty) ...[
+          Text('Personajes en escena', style: theme.textTheme.titleMedium),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children:
+                characters.map((c) => CharacterChip(character: c)).toList(),
           ),
-        ),
-    };
+        ],
+      ],
+    );
+  }
+}
+
+class _SceneBriefSkeleton extends StatelessWidget {
+  const _SceneBriefSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Skeletonizer.zone(
+      child: ListView(
+        children: [
+          Text('Qué está pasando', style: theme.textTheme.titleMedium),
+          const SizedBox(height: 8),
+          const Bone.multiText(lines: 3),
+          const SizedBox(height: 20),
+          Text('Personajes en escena', style: theme.textTheme.titleMedium),
+          const SizedBox(height: 8),
+          const Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _SkeletonCharacterChip(),
+              _SkeletonCharacterChip(),
+              _SkeletonCharacterChip(),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SkeletonCharacterChip extends StatelessWidget {
+  const _SkeletonCharacterChip();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.fromLTRB(6, 6, 14, 6),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Bone.circle(size: 48),
+          SizedBox(width: 10),
+          Bone.text(width: 72),
+        ],
+      ),
+    );
   }
 }
 
