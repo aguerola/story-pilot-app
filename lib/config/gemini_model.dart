@@ -1,6 +1,11 @@
 /// Supported Gemini models for Firebase AI.
 /// Source: https://ai.google.dev/gemini-api/docs/pricing (Standard tier, paid)
 enum GeminiModel {
+  flashLite31(
+    id: 'gemini-3.1-flash-lite',
+    inputPerMillionUsd: 0.25,
+    outputPerMillionUsd: 1.50,
+  ),
   flashLite25(
     id: 'gemini-2.5-flash-lite',
     inputPerMillionUsd: 0.10,
@@ -23,7 +28,8 @@ enum GeminiModel {
   final double outputPerMillionUsd;
 
   String get shortLabel => switch (this) {
-        flashLite25 => 'Lite',
+        flashLite31 => 'Lite 3.1',
+        flashLite25 => 'Lite 2.5',
         flash25 => 'Flash',
       };
 

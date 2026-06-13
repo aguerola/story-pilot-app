@@ -8,6 +8,7 @@ void main() {
       expect(
         GeminiModel.values.map((m) => m.id).toList(),
         [
+          'gemini-3.1-flash-lite',
           'gemini-2.5-flash-lite',
           'gemini-2.5-flash',
         ],
@@ -15,6 +16,10 @@ void main() {
     });
 
     test('fromId resolves known models', () {
+      expect(
+        GeminiModel.fromId('gemini-3.1-flash-lite').id,
+        'gemini-3.1-flash-lite',
+      );
       expect(
         GeminiModel.fromId('gemini-2.5-flash').id,
         'gemini-2.5-flash',
@@ -27,6 +32,20 @@ void main() {
 
     test('fromId falls back to default for unknown ids', () {
       expect(GeminiModel.fromId('unknown').id, GeminiModel.defaultModel.id);
+    });
+
+    test('estimates cost for gemini-3.1-flash-lite standard tier', () {
+      const model = GeminiModel.flashLite31;
+
+      final cost = model.estimateCostUsd(
+        promptTokens: 346,
+        responseTokens: 218,
+        thoughtsTokens: 590,
+      );
+
+      // input: 346 * 0.25 / 1e6 = 0.0000865
+      // output: (218 + 590) * 1.50 / 1e6 = 0.001212
+      expect(cost, closeTo(0.0012985, 0.0000001));
     });
 
     test('estimates cost for gemini-2.5-flash-lite standard tier', () {

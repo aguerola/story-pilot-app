@@ -11,7 +11,7 @@ import 'package:storypilot/utils/text_utils.dart';
 
 /// Generates the scene "brief" shown automatically when a scene loads:
 /// summary + present characters + suggested questions, all in one call.
-/// It is free for the user (never consumes the daily quota) and always Lite.
+/// It is free for the user (never consumes the daily quota) and uses the default Lite model.
 class SceneBriefCubit extends Cubit<SceneBriefState> {
   SceneBriefCubit(this._repository) : super(const SceneBriefInitial());
 
@@ -22,7 +22,7 @@ class SceneBriefCubit extends Cubit<SceneBriefState> {
     final result = await _repository.brief(
       context: context,
       cast: cast,
-      model: GeminiModel.flashLite25,
+      model: GeminiModel.defaultModel,
     );
     if (isClosed) return;
     switch (result) {

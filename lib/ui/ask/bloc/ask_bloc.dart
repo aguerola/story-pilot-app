@@ -62,8 +62,7 @@ class AskBloc extends Bloc<AskEvent, AskState> {
     final result = await _repository.ask(
       context: context,
       question: event.question.trim(),
-      // Always use Lite for now; the model picker is disabled in the UI.
-      model: GeminiModel.flashLite25,
+      model: GeminiModel.defaultModel,
     );
     switch (result) {
       case Success(:final data):

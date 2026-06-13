@@ -121,54 +121,6 @@ Reglas:
         model: model,
       );
     } catch (error, stackTrace) {
-      if (isQuotaExceeded(error)) {
-        var quotaMessage = quotaErrorMessage(error);
-        developer.log(
-          quotaMessage,
-          name: 'FirebaseAiAskService',
-          error: error,
-          stackTrace: stackTrace,
-        );
-
-        if (model == GeminiModel.flash25) {
-          try {
-            return await _generateAnswer(
-              context: context,
-              question: question,
-              model: GeminiModel.flashLite25,
-            );
-          } catch (liteError, liteStackTrace) {
-            if (!isQuotaExceeded(liteError)) {
-              return _stubFallback(
-                context: context,
-                question: question,
-                model: model,
-                error: liteError,
-                stackTrace: liteStackTrace,
-              );
-            }
-            developer.log(
-              quotaErrorMessage(liteError),
-              name: 'FirebaseAiAskService',
-              error: liteError,
-              stackTrace: liteStackTrace,
-            );
-            quotaMessage = quotaErrorMessage(liteError);
-          }
-        }
-
-        final retryAfterSeconds = parseQuotaRetrySeconds(quotaMessage);
-        return Error(
-          QuotaFailure(
-            quotaFailureMessage(
-              modelLabel: model.shortLabel,
-              retryAfterSeconds: retryAfterSeconds,
-            ),
-            retryAfterSeconds: retryAfterSeconds,
-          ),
-        );
-      }
-
       return _stubFallback(
         context: context,
         question: question,
@@ -243,36 +195,6 @@ Reglas:
       ),
     );
   }
-}
-
-bool isQuotaExceeded(Object error) {
-  if (error is FirebaseAIException) {
-    return error.message.toLowerCase().contains('quota');
-  }
-  return error.toString().toLowerCase().contains('quota exceeded');
-}
-
-String quotaErrorMessage(Object error) {
-  if (error is FirebaseAIException) return error.message;
-  return error.toString();
-}
-
-int? parseQuotaRetrySeconds(String message) {
-  final match = RegExp(r'retry in (\d+(?:\.\d+)?)s', caseSensitive: false)
-      .firstMatch(message);
-  if (match == null) return null;
-  return double.parse(match.group(1)!).ceil();
-}
-
-String quotaFailureMessage({
-  required String modelLabel,
-  int? retryAfterSeconds,
-}) {
-  final retryHint = retryAfterSeconds == null
-      ? 'Espera un momento e inténtalo de nuevo.'
-      : 'Espera unos ${retryAfterSeconds}s e inténtalo de nuevo.';
-  return 'Has alcanzado el límite de peticiones de Gemini ($modelLabel). '
-      '$retryHint También puedes cambiar a Lite en el selector de modelo.';
 }
 
 String buildBriefPromptContent(SceneContext context, List<CastMember> cast) {

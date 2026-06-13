@@ -51,7 +51,7 @@ void main() {
         () => repository.brief(
           context: context,
           cast: cast,
-          model: GeminiModel.flashLite25,
+          model: GeminiModel.defaultModel,
         ),
       ).thenAnswer(
         (_) async => const Success(
@@ -82,7 +82,7 @@ void main() {
         () => repository.brief(
           context: context,
           cast: cast,
-          model: GeminiModel.flashLite25,
+          model: GeminiModel.defaultModel,
         ),
       ).called(1);
     },
@@ -95,7 +95,7 @@ void main() {
         () => repository.brief(
           context: context,
           cast: cast,
-          model: GeminiModel.flashLite25,
+          model: GeminiModel.defaultModel,
         ),
       ).thenAnswer((_) async => const Error(NetworkFailure('boom')));
       return SceneBriefCubit(repository);

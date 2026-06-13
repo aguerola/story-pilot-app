@@ -1,46 +1,9 @@
-import 'package:firebase_ai/firebase_ai.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:storypilot/data/services/firebase_ai_ask_service.dart';
 import 'package:storypilot/domain/models/scene_answer.dart';
 import 'package:storypilot/domain/models/scene_context.dart';
 
 void main() {
-  test('isQuotaExceeded detects quota errors', () {
-    expect(
-      isQuotaExceeded(ServerException('Quota exceeded for metric')),
-      isTrue,
-    );
-    expect(
-      isQuotaExceeded(ServerException('Network timeout')),
-      isFalse,
-    );
-  });
-
-  test('parseQuotaRetrySeconds extracts retry delay', () {
-    expect(
-      parseQuotaRetrySeconds(
-        'Quota exceeded... Please retry in 54.155857482s.',
-      ),
-      55,
-    );
-    expect(parseQuotaRetrySeconds('Quota exceeded'), isNull);
-  });
-
-  test('quotaFailureMessage includes model and retry hint', () {
-    expect(
-      quotaFailureMessage(modelLabel: 'Flash', retryAfterSeconds: 55),
-      contains('Flash'),
-    );
-    expect(
-      quotaFailureMessage(modelLabel: 'Flash', retryAfterSeconds: 55),
-      contains('55s'),
-    );
-    expect(
-      quotaFailureMessage(modelLabel: 'Lite', retryAfterSeconds: null),
-      contains('Lite'),
-    );
-  });
-
   test('buildAskPromptContent orders context for caching and includes question',
       () {
     const context = SceneContext(

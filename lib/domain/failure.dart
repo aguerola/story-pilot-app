@@ -33,18 +33,6 @@ final class ValidationFailure extends Failure {
   const ValidationFailure([super.message = 'Validation error']);
 }
 
-final class QuotaFailure extends Failure {
-  const QuotaFailure(
-    super.message, {
-    this.retryAfterSeconds,
-  });
-
-  final int? retryAfterSeconds;
-
-  @override
-  List<Object?> get props => [message, retryAfterSeconds];
-}
-
 final class AuthRequiredFailure extends Failure {
   const AuthRequiredFailure([
     super.message =
