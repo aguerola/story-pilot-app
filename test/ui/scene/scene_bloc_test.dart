@@ -89,6 +89,7 @@ void main() {
           subtitles: document,
           cast: const [],
           timestampMs: 2000,
+          titleLabel: 'Matrix',
         ),
       ).thenAnswer((_) async => Success(context));
       return bloc;

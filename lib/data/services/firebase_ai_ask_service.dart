@@ -42,6 +42,7 @@ Reglas:
 - Si algo no está claro en la escena, puedes inferirlo con tu conocimiento.
 - La lista de personajes detectados es heurística y puede estar incompleta.
 - Responde en el idioma de la pregunta del usuario.
+- Responde anclándote en la ESCENA SELECCIONADA en el momento indicado. Usa el diálogo como referencia principal y complementa con tu conocimiento de la película o serie cuando enriquezca la respuesta.
 ''';
 
   @override
@@ -218,30 +219,30 @@ String buildAskPromptContent(SceneContext context, String question) {
       .map((c) => c.castMember.characterName)
       .join(', ');
 
-  final activeLineSection = activeSubtitle != null && activeSubtitle.isNotEmpty
-      ? 'Subtítulo en ese instante: "$activeSubtitle"\n\n'
+  final titleSection = context.titleLabel != null
+      ? 'Título: ${context.titleLabel}\n\n'
       : '';
-
-  final sceneDialogue = context.dialogueText.trim().isEmpty
-      ? '(sin diálogo en esta ventana)'
-      : context.dialogueText;
 
   final priorDialogue = context.priorDialogueText.trim().isEmpty
       ? '(sin diálogo previo)'
       : context.priorDialogueText;
 
-  return '''
-Momento seleccionado: $timestamp
-${activeLineSection}Escena seleccionada (diálogo ${context.sceneWindowLabel} del momento):
-$sceneDialogue
+  final followingDialogue = context.followingDialogueText.trim();
+  final followingSection = followingDialogue.isEmpty
+      ? ''
+      : 'Diálogo inmediatamente posterior (${context.sceneAfterSeconds}s después del momento):\n$followingDialogue\n\n';
 
-Contexto previo (todos los subtítulos desde el inicio hasta el momento seleccionado):
+  final activeLineSection = activeSubtitle != null && activeSubtitle.isNotEmpty
+      ? 'Subtítulo en ese instante: "$activeSubtitle"\n'
+      : '';
+
+  return '''
+${titleSection}Contexto previo (todos los subtítulos desde el inicio hasta el momento seleccionado):
 $priorDialogue
 
-Personajes detectados automáticamente (lista incompleta, puede haber más): ${characters.isEmpty ? 'ninguno' : characters}
+${followingSection}Momento seleccionado: $timestamp
+${activeLineSection}Personajes detectados automáticamente (lista incompleta, puede haber más): ${characters.isEmpty ? 'ninguno' : characters}
 
 Pregunta: $question
-
-Responde anclándote en la ESCENA SELECCIONADA en el momento indicado. Usa el diálogo como referencia principal y complementa con tu conocimiento de la película o serie cuando enriquezca la respuesta. No spoilers de eventos posteriores al momento seleccionado.
 ''';
 }

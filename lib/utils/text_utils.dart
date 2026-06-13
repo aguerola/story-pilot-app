@@ -40,6 +40,17 @@ List<SubtitleLine> linesFromStartThroughTimestamp(
   return lines.where((line) => line.startMs <= timestampMs).toList();
 }
 
+List<SubtitleLine> linesAfterTimestampWithinWindow(
+  List<SubtitleLine> lines,
+  int timestampMs, {
+  int afterSeconds = 30,
+}) {
+  final end = timestampMs + afterSeconds * 1000;
+  return lines
+      .where((line) => line.startMs > timestampMs && line.startMs <= end)
+      .toList();
+}
+
 String aggregateDialogue(List<SubtitleLine> lines) {
   return lines.map((l) => l.text.trim()).where((t) => t.isNotEmpty).join('\n');
 }

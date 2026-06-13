@@ -52,6 +52,7 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> {
       subtitles: subtitles,
       cast: _session.cast,
       timestampMs: timestampMs,
+      titleLabel: _session.titleDetail?.summary.displayLabel,
     );
     switch (result) {
       case Success(:final data):

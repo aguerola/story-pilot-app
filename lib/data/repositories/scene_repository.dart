@@ -15,6 +15,7 @@ class SceneRepository {
     required int timestampMs,
     int sceneBeforeSeconds = SceneAnalyzerService.sceneBeforeSeconds,
     int sceneAfterSeconds = SceneAnalyzerService.sceneAfterSeconds,
+    String? titleLabel,
   }) async {
     final context = _analyzer.buildContext(
       subtitles: subtitles,
@@ -22,6 +23,7 @@ class SceneRepository {
       timestampMs: timestampMs,
       sceneBeforeSeconds: sceneBeforeSeconds,
       sceneAfterSeconds: sceneAfterSeconds,
+      titleLabel: titleLabel,
     );
     return Success(context);
   }

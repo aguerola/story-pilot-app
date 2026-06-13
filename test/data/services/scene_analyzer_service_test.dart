@@ -97,6 +97,32 @@ void main() {
     expect(context.dialogueText, contains('Cerca del momento'));
   });
 
+  test('following dialogue includes only subtitles after timestamp within window',
+      () {
+    final document = SubtitleDocument(
+      titleId: 1,
+      language: 'es',
+      fileId: '1',
+      lines: const [
+        SubtitleLine(startMs: 0, endMs: 10000, text: 'Inicio'),
+        SubtitleLine(startMs: 50000, endMs: 55000, text: 'Mitad'),
+        SubtitleLine(startMs: 62000, endMs: 65000, text: 'Justo después'),
+        SubtitleLine(startMs: 95000, endMs: 100000, text: 'Fuera de ventana'),
+      ],
+    );
+
+    final context = analyzer.buildContext(
+      subtitles: document,
+      cast: const [],
+      timestampMs: 60000,
+    );
+
+    expect(context.followingDialogueText, 'Justo después');
+    expect(context.priorDialogueText, 'Inicio\nMitad');
+    expect(context.dialogueText, contains('Justo después'));
+    expect(context.dialogueText, isNot(contains('Fuera de ventana')));
+  });
+
   test('scene window spans two minutes before and thirty seconds after', () {
     final document = SubtitleDocument(
       titleId: 1,

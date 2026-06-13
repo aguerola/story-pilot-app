@@ -41,7 +41,8 @@ void main() {
     );
   });
 
-  test('buildAskPromptContent includes dialogue and question', () {
+  test('buildAskPromptContent orders context for caching and includes question',
+      () {
     const context = SceneContext(
       timestampMs: 3661000,
       sceneBeforeSeconds: 120,
@@ -50,24 +51,25 @@ void main() {
       dialogueText: 'Final de la escena.',
       askDialogueText: 'Inicio\nMitad\nFinal de la escena.',
       priorDialogueText: 'Inicio\nMitad',
+      followingDialogueText: 'Justo después',
+      titleLabel: 'Matrix (1999)',
       characters: [],
     );
 
     final content = buildAskPromptContent(context, '¿Qué pasa al final?');
 
-    expect(content, contains('Momento seleccionado: 01:01:01'));
-    expect(content, contains('Escena seleccionada'));
-    expect(content, contains('2 min antes → 30s después'));
-    expect(content, contains('Final de la escena.'));
-    expect(content, contains('Contexto previo'));
-    expect(content, contains('todos los subtítulos desde el inicio'));
+    expect(content.indexOf('Título: Matrix (1999)'), lessThan(content.indexOf('Contexto previo')));
+    expect(content.indexOf('Contexto previo'), lessThan(content.indexOf('Inicio\nMitad')));
+    expect(
+      content.indexOf('Diálogo inmediatamente posterior'),
+      lessThan(content.indexOf('Momento seleccionado')),
+    );
+    expect(content.indexOf('Momento seleccionado: 01:01:01'), lessThan(content.indexOf('Pregunta:')));
+    expect(content.trim().endsWith('¿Qué pasa al final?'), isTrue);
     expect(content, contains('Inicio\nMitad'));
-    expect(content, contains('¿Qué pasa al final?'));
-    expect(content, contains('ESCENA SELECCIONADA'));
+    expect(content, contains('Justo después'));
     expect(content, contains('Personajes detectados automáticamente'));
-    expect(content, contains('lista incompleta'));
-    expect(content, contains('complementa con tu conocimiento'));
-    expect(content, contains('No spoilers'));
+    expect(content, isNot(contains('Escena seleccionada')));
   });
 
   test('SceneAnswer tokenUsageLabel formats usage counts', () {

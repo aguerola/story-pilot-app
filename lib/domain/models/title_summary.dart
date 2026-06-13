@@ -16,6 +16,9 @@ class TitleSummary extends Equatable {
   final int? year;
   final String? posterUrl;
 
+  String get displayLabel =>
+      year != null ? '$title ($year)' : title;
+
   Map<String, dynamic> toJson() => {
         'id': id,
         'mediaType': mediaType.name,

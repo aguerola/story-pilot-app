@@ -15,6 +15,7 @@ class SceneAnalyzerService {
     required int timestampMs,
     int sceneBeforeSeconds = SceneAnalyzerService.sceneBeforeSeconds,
     int sceneAfterSeconds = SceneAnalyzerService.sceneAfterSeconds,
+    String? titleLabel,
   }) {
     final windowLines = linesInSceneWindow(
       subtitles.lines,
@@ -31,9 +32,15 @@ class SceneAnalyzerService {
       subtitles.lines,
       timestampMs,
     );
+    final followingLines = linesAfterTimestampWithinWindow(
+      subtitles.lines,
+      timestampMs,
+      afterSeconds: sceneAfterSeconds,
+    );
     final dialogueText = aggregateDialogue(windowLines);
     final askDialogueText = aggregateDialogue(askLines);
     final priorDialogueText = aggregateDialogue(priorLines);
+    final followingDialogueText = aggregateDialogue(followingLines);
     final normalizedDialogue = normalizeText(dialogueText);
     SubtitleLine? activeLine;
     for (final line in subtitles.lines) {
@@ -64,6 +71,8 @@ class SceneAnalyzerService {
       dialogueText: dialogueText,
       askDialogueText: askDialogueText,
       priorDialogueText: priorDialogueText,
+      followingDialogueText: followingDialogueText,
+      titleLabel: titleLabel,
       characters: characters,
     );
   }

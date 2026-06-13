@@ -27,6 +27,8 @@ class SceneContext extends Equatable {
     required this.dialogueText,
     required this.askDialogueText,
     required this.priorDialogueText,
+    this.followingDialogueText = '',
+    this.titleLabel,
     required this.characters,
   });
 
@@ -37,6 +39,8 @@ class SceneContext extends Equatable {
   final String dialogueText;
   final String askDialogueText;
   final String priorDialogueText;
+  final String followingDialogueText;
+  final String? titleLabel;
   final List<SceneCharacter> characters;
 
   String get sceneWindowLabel =>
@@ -51,6 +55,8 @@ class SceneContext extends Equatable {
         dialogueText,
         askDialogueText,
         priorDialogueText,
+        followingDialogueText,
+        titleLabel,
         characters,
       ];
 }
