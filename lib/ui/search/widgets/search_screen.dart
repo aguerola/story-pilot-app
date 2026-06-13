@@ -74,7 +74,7 @@ class _SearchViewState extends State<_SearchView> {
                       ? const Center(child: Text('Sin resultados'))
                       : ListView.separated(
                           itemCount: results.length,
-                          separatorBuilder: (_, __) =>
+                          separatorBuilder: (_, _) =>
                               const Divider(height: 1),
                           itemBuilder: (context, index) {
                             final item = results[index];
@@ -85,7 +85,7 @@ class _SearchViewState extends State<_SearchView> {
                                       width: 48,
                                       height: 72,
                                       fit: BoxFit.cover,
-                                      errorBuilder: (_, __, ___) =>
+                                      errorBuilder: (_, _, _) =>
                                           const Icon(Icons.movie),
                                     )
                                   : const Icon(Icons.movie),

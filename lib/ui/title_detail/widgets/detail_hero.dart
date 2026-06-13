@@ -21,7 +21,7 @@ class DetailHero extends StatelessWidget {
             Image.network(
               detail.backdropUrl!,
               fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+              errorBuilder: (_, _, _) => const SizedBox.shrink(),
             ),
           if (detail.backdropUrl != null)
             DecoratedBox(
@@ -49,7 +49,7 @@ class DetailHero extends StatelessWidget {
                       width: 100,
                       height: 150,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => const SizedBox(
+                      errorBuilder: (_, _, _) => const SizedBox(
                         width: 100,
                         height: 150,
                       ),

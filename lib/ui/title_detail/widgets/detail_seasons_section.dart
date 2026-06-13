@@ -30,7 +30,7 @@ class DetailSeasonsSection extends StatelessWidget {
                         width: 40,
                         height: 60,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) =>
+                        errorBuilder: (_, _, _) =>
                             const Icon(Icons.tv, size: 40),
                       ),
                     )
