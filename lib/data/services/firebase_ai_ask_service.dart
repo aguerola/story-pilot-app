@@ -9,7 +9,10 @@ import 'package:storypilot/domain/result.dart';
 class FirebaseAiAskService implements AskService {
   FirebaseAiAskService({GenerativeModel? model, LocalStubAskService? fallback})
       : _model = model ??
-            FirebaseAI.googleAI().generativeModel(model: 'gemini-2.5-flash'),
+            FirebaseAI.googleAI().generativeModel(
+              model: 'gemini-2.5-flash',
+              systemInstruction: Content.system(_systemInstruction),
+            ),
         _fallback = fallback ?? LocalStubAskService();
 
   final GenerativeModel _model;
@@ -36,7 +39,6 @@ Reglas estrictas:
           .join(', ');
 
       final response = await _model.generateContent([
-        Content.system(_systemInstruction),
         Content.text('''
 Diálogo de la escena:
 ${context.dialogueText}

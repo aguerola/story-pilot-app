@@ -18,16 +18,13 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: String.fromEnvironment('FIREBASE_API_KEY', defaultValue: 'unset'),
-    appId: String.fromEnvironment('FIREBASE_APP_ID', defaultValue: 'unset'),
-    messagingSenderId: String.fromEnvironment(
-      'FIREBASE_MESSAGING_SENDER_ID',
-      defaultValue: 'unset',
-    ),
-    projectId: String.fromEnvironment(
-      'FIREBASE_PROJECT_ID',
-      defaultValue: 'unset',
-    ),
+    apiKey: 'AIzaSyBFueW7ol-EUTmpCuxyzFYQQfgN3J1zpfU',
+    appId: '1:495865262735:web:c446d0eeaca5f1fcd3b6fa',
+    messagingSenderId: '495865262735',
+    projectId: 'storypilot-35945',
+    authDomain: 'storypilot-35945.firebaseapp.com',
+    storageBucket: 'storypilot-35945.firebasestorage.app',
+    measurementId: 'G-MQ3ZJXC62Z',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
