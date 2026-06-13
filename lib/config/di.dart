@@ -6,17 +6,21 @@ import 'package:storypilot/data/repositories/ask_repository.dart';
 import 'package:storypilot/data/repositories/scene_repository.dart';
 import 'package:storypilot/data/repositories/subtitle_repository.dart';
 import 'package:storypilot/data/repositories/title_repository.dart';
+import 'package:storypilot/data/services/auth_service.dart';
+import 'package:storypilot/data/services/usage_limit_service.dart';
 import 'package:storypilot/data/services/ask_service.dart';
 import 'package:storypilot/data/services/firebase_ai_ask_service.dart';
 import 'package:storypilot/data/services/local_cache_service.dart';
 import 'package:storypilot/data/services/local_stub_ask_service.dart';
 import 'package:storypilot/data/services/open_subtitles_service.dart';
+import 'package:storypilot/ui/ask/bloc/ask_bloc.dart';
 import 'package:storypilot/data/services/scene_analyzer_service.dart';
 import 'package:storypilot/data/services/settings_service.dart';
 import 'package:storypilot/data/services/subtitle_parser_service.dart';
 import 'package:storypilot/data/services/title_session_holder.dart';
 import 'package:storypilot/data/services/tmdb_service.dart';
-import 'package:storypilot/ui/ask/bloc/ask_bloc.dart';
+import 'package:storypilot/ui/auth/bloc/auth_bloc.dart';
+import 'package:storypilot/ui/auth/bloc/auth_event.dart';
 import 'package:storypilot/ui/scene/bloc/scene_bloc.dart';
 import 'package:storypilot/ui/search/bloc/search_bloc.dart';
 import 'package:storypilot/ui/subtitles/bloc/subtitle_bloc.dart';
@@ -31,6 +35,15 @@ Future<void> configureDependencies() async {
     ..registerSingleton<SharedPreferences>(prefs)
     ..registerLazySingleton(
       () => SettingsService(getIt<SharedPreferences>()),
+    )
+    ..registerLazySingleton(
+      () => AuthService(getIt<SharedPreferences>()),
+    )
+    ..registerLazySingleton(
+      () => UsageLimitService(getIt<SharedPreferences>()),
+    )
+    ..registerLazySingleton(
+      () => AuthBloc(getIt<AuthService>())..add(const AuthStarted()),
     )
     ..registerLazySingleton(TitleSessionHolder.new)
     ..registerLazySingleton<Dio>(
@@ -85,7 +98,14 @@ Future<void> configureDependencies() async {
         getIt<TitleSessionHolder>(),
       ),
     )
-    ..registerFactory(() => AskBloc(getIt<AskRepository>(), getIt<SettingsService>()));
+    ..registerFactory(
+      () => AskBloc(
+        getIt<AskRepository>(),
+        getIt<SettingsService>(),
+        getIt<AuthService>(),
+        getIt<UsageLimitService>(),
+      ),
+    );
 }
 
 AskService _createAskService() {

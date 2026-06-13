@@ -44,3 +44,10 @@ final class QuotaFailure extends Failure {
   @override
   List<Object?> get props => [message, retryAfterSeconds];
 }
+
+final class AuthRequiredFailure extends Failure {
+  const AuthRequiredFailure([
+    super.message =
+        'Has usado tus 3 preguntas de hoy. Inicia sesión con tu email para seguir preguntando.',
+  ]);
+}

@@ -54,6 +54,19 @@ flutter run -d chrome \
 
 Without `USE_FIREBASE_AI`, Ask uses the local stub (offline rules).
 
+### Firebase Auth (email magic link)
+
+Login is optional but required after 3 AI questions per day for anonymous users.
+
+**Firebase Console setup (one-time):**
+
+1. Open [Firebase Console](https://console.firebase.google.com/) → project `storypilot-35945` → **Authentication**.
+2. Enable **Email/Password** provider and turn on **Email link (passwordless sign-in)**.
+3. Under **Settings → Authorized domains**, add `localhost` (dev) and your production domain.
+4. Magic links redirect to `{origin}/login` (handled automatically by the app).
+
+No extra dart-defines are needed; web config is in `lib/firebase_options.dart`.
+
 ## Flow
 
 1. Search title (TMDB)

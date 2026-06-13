@@ -5,6 +5,7 @@ import 'package:storypilot/config/app_bloc_observer.dart';
 import 'package:storypilot/config/di.dart';
 import 'package:storypilot/config/firebase_init.dart';
 import 'package:storypilot/routing/app_router.dart';
+import 'package:storypilot/ui/auth/bloc/auth_bloc.dart';
 import 'package:storypilot/ui/core/themes/app_theme.dart';
 
 Future<void> main() async {
@@ -22,10 +23,13 @@ class StoryPilotApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp.router(
-      title: 'Scene Context',
-      theme: AppTheme.light,
-      routerConfig: createAppRouter(),
+    return BlocProvider.value(
+      value: getIt<AuthBloc>(),
+      child: MaterialApp.router(
+        title: 'Scene Context',
+        theme: AppTheme.light,
+        routerConfig: createAppRouter(),
+      ),
     );
   }
 }

@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:storypilot/config/di.dart';
 import 'package:storypilot/config/gemini_model.dart';
 import 'package:storypilot/data/services/settings_service.dart';
+import 'package:storypilot/data/services/usage_limit_service.dart';
+import 'package:storypilot/domain/failure.dart';
 import 'package:storypilot/ui/ask/bloc/ask_bloc.dart';
 import 'package:storypilot/ui/ask/bloc/ask_event.dart';
 import 'package:storypilot/ui/ask/bloc/ask_state.dart';
+import 'package:storypilot/ui/auth/bloc/auth_bloc.dart';
+import 'package:storypilot/ui/auth/bloc/auth_state.dart';
 
 class SceneAskPanel extends StatefulWidget {
   const SceneAskPanel({
@@ -41,12 +46,26 @@ class _SceneAskPanelState extends State<SceneAskPanel> {
     await getIt<SettingsService>().setGeminiModel(model);
   }
 
+  bool _isAuthenticated(BuildContext context) =>
+      context.watch<AuthBloc>().state is AuthAuthenticated;
+
+  int _remainingQuestions() => getIt<UsageLimitService>().remainingQuestions();
+
+  bool _canSubmit(BuildContext context) {
+    if (!widget.enabled) return false;
+    if (_isAuthenticated(context)) return true;
+    return _remainingQuestions() > 0;
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final mutedStyle = theme.textTheme.bodySmall?.copyWith(
       color: theme.colorScheme.onSurfaceVariant,
     );
+    final isAuthenticated = _isAuthenticated(context);
+    final remaining = _remainingQuestions();
+    final canSubmit = _canSubmit(context);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -77,6 +96,15 @@ class _SceneAskPanelState extends State<SceneAskPanel> {
             ),
           ],
         ),
+        if (!isAuthenticated) ...[
+          const SizedBox(height: 4),
+          Text(
+            remaining > 0
+                ? 'Te quedan $remaining preguntas hoy (sin cuenta)'
+                : 'Has agotado tus preguntas de hoy. Inicia sesión para continuar.',
+            style: mutedStyle,
+          ),
+        ],
         const SizedBox(height: 8),
         Expanded(
           child: !widget.enabled
@@ -153,6 +181,9 @@ class _SceneAskPanelState extends State<SceneAskPanel> {
                     AskMissingContext() => const Center(
                         child: Text('Contexto de escena no disponible'),
                       ),
+                    AskAuthRequired() => _AuthRequiredPrompt(
+                        message: const AuthRequiredFailure().message,
+                      ),
                   },
                 ),
         ),
@@ -161,17 +192,19 @@ class _SceneAskPanelState extends State<SceneAskPanel> {
             Expanded(
               child: TextField(
                 controller: _controller,
-                enabled: widget.enabled,
-                decoration: const InputDecoration(
-                  hintText: '¿Quién está en la escena?',
+                enabled: canSubmit,
+                decoration: InputDecoration(
+                  hintText: canSubmit
+                      ? '¿Quién está en la escena?'
+                      : 'Inicia sesión para seguir preguntando',
                 ),
-                onSubmitted: widget.enabled
+                onSubmitted: canSubmit
                     ? (value) => _submit(context, value)
                     : null,
               ),
             ),
             IconButton(
-              onPressed: widget.enabled
+              onPressed: canSubmit
                   ? () => _submit(context, _controller.text)
                   : null,
               icon: const Icon(Icons.send),
@@ -185,5 +218,28 @@ class _SceneAskPanelState extends State<SceneAskPanel> {
   void _submit(BuildContext context, String question) {
     context.read<AskBloc>().add(AskQuestionSubmitted(question));
     _controller.clear();
+  }
+}
+
+class _AuthRequiredPrompt extends StatelessWidget {
+  const _AuthRequiredPrompt({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(message, textAlign: TextAlign.center),
+          const SizedBox(height: 16),
+          FilledButton(
+            onPressed: () => context.go('/login'),
+            child: const Text('Iniciar sesión'),
+          ),
+        ],
+      ),
+    );
   }
 }

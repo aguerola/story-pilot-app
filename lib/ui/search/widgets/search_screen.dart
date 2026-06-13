@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:storypilot/config/di.dart';
+import 'package:storypilot/ui/auth/widgets/auth_app_bar_actions.dart';
 import 'package:storypilot/ui/search/bloc/search_bloc.dart';
 import 'package:storypilot/ui/search/bloc/search_event.dart';
 import 'package:storypilot/ui/search/bloc/search_state.dart';
@@ -37,7 +38,10 @@ class _SearchViewState extends State<_SearchView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Scene Context')),
+      appBar: AppBar(
+        title: const Text('Scene Context'),
+        actions: [AuthAppBarActions()],
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(

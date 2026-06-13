@@ -43,3 +43,7 @@ final class AskFailure extends AskState {
 final class AskMissingContext extends AskState {
   const AskMissingContext();
 }
+
+final class AskAuthRequired extends AskState {
+  const AskAuthRequired();
+}
