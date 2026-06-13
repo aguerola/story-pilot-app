@@ -66,7 +66,8 @@ void main() {
     expect(content, contains('ESCENA SELECCIONADA'));
     expect(content, contains('Personajes detectados automáticamente'));
     expect(content, contains('lista incompleta'));
-    expect(content, contains('infiérelos solo a partir del diálogo'));
+    expect(content, contains('complementa con tu conocimiento'));
+    expect(content, contains('No spoilers'));
   });
 
   test('SceneAnswer tokenUsageLabel formats usage counts', () {
