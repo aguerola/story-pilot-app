@@ -187,22 +187,27 @@ class _SceneViewState extends State<_SceneView> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (showEpisodeSelector) ...[
-                    SeasonEpisodeSelector(
-                      seasons: _seasons,
-                      selectedSeason: _selectedSeason!,
-                      selectedEpisode: _selectedEpisode!,
-                      onChanged: _onEpisodeSelectionChanged,
-                    ),
-                    const SizedBox(height: 12),
-                  ],
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      if (showEpisodeSelector) ...[
+                        Expanded(
+                          flex: 3,
+                          child: SeasonEpisodeSelector(
+                            seasons: _seasons,
+                            selectedSeason: _selectedSeason!,
+                            selectedEpisode: _selectedEpisode!,
+                            onChanged: _onEpisodeSelectionChanged,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                      ],
                       Expanded(
+                        flex: showEpisodeSelector ? 2 : 1,
                         child: TextField(
                           controller: _timeController,
                           decoration: const InputDecoration(
-                            labelText: 'Timestamp (HH:MM:SS)',
+                            labelText: 'Momento (HH:MM:SS)',
                           ),
                           onSubmitted: _onTimeSubmitted,
                         ),
@@ -220,8 +225,6 @@ class _SceneViewState extends State<_SceneView> {
                     onChanged: _onSliderChanged,
                     onChangeEnd: _onSliderReleased,
                   ),
-                  if (state is SceneLoaded)
-                    _SpoilerGuardBanner(timestampMs: state.context.timestampMs),
                   const SizedBox(height: 8),
                   Expanded(
                     child: LayoutBuilder(
@@ -326,42 +329,6 @@ class _AwaitingTimestampPrompt extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _SpoilerGuardBanner extends StatelessWidget {
-  const _SpoilerGuardBanner({required this.timestampMs});
-
-  final int timestampMs;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.only(top: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.green.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.green.withValues(alpha: 0.4)),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.shield_outlined, size: 18, color: Colors.green.shade700),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              'Vas por el ${formatMsToTimestamp(timestampMs)} · no te cuento '
-              'nada de lo que pasa después',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: Colors.green.shade800,
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }

@@ -43,7 +43,7 @@ class SeasonEpisodeSelector extends StatelessWidget {
                   (season) => DropdownMenuItem(
                     value: season.seasonNumber,
                     child: Text(
-                      season.name,
+                      '${season.seasonNumber}',
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
@@ -55,7 +55,7 @@ class SeasonEpisodeSelector extends StatelessWidget {
             },
           ),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: 8),
         Expanded(
           child: DropdownButtonFormField<int>(
             initialValue: safeEpisode,
@@ -64,7 +64,7 @@ class SeasonEpisodeSelector extends StatelessWidget {
             ),
             items: episodeCount == 0
                 ? const [
-                    DropdownMenuItem(value: 1, child: Text('Cap. 1')),
+                    DropdownMenuItem(value: 1, child: Text('1')),
                   ]
                 : List.generate(
                     episodeCount,
@@ -72,7 +72,7 @@ class SeasonEpisodeSelector extends StatelessWidget {
                       final number = index + 1;
                       return DropdownMenuItem(
                         value: number,
-                        child: Text('Cap. $number'),
+                        child: Text('$number'),
                       );
                     },
                   ),
