@@ -6,7 +6,6 @@ import 'package:storypilot/domain/models/scene_context.dart';
 import 'package:storypilot/ui/ask/bloc/ask_bloc.dart';
 import 'package:storypilot/ui/ask/bloc/ask_event.dart';
 import 'package:storypilot/ui/core/ui/character_chip.dart';
-import 'package:storypilot/ui/core/ui/subtitle_line_widget.dart';
 import 'package:storypilot/ui/scene/bloc/scene_bloc.dart';
 import 'package:storypilot/ui/scene/bloc/scene_event.dart';
 import 'package:storypilot/ui/scene/bloc/scene_state.dart';
@@ -299,9 +298,7 @@ class _SceneLoadedContent extends StatelessWidget {
                 .map((c) => CharacterChip(character: c))
                 .toList(),
           ),
-          const SizedBox(height: 12),
         ],
-        _OriginalDialogue(sceneContext: sceneContext),
       ],
     );
   }
@@ -346,34 +343,3 @@ class _SceneSummary extends StatelessWidget {
   }
 }
 
-class _OriginalDialogue extends StatelessWidget {
-  const _OriginalDialogue({required this.sceneContext});
-
-  final SceneContext sceneContext;
-
-  @override
-  Widget build(BuildContext context) {
-    return Theme(
-      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-      child: ExpansionTile(
-        tilePadding: EdgeInsets.zero,
-        childrenPadding: const EdgeInsets.only(bottom: 8),
-        title: const Text('Ver diálogo original'),
-        subtitle: Text('Escena: ${sceneContext.sceneWindowLabel}'),
-        children: [
-          if (sceneContext.activeLine != null) ...[
-            SubtitleLineWidget(
-              line: sceneContext.activeLine!,
-              highlighted: true,
-            ),
-            const SizedBox(height: 8),
-          ],
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Text(sceneContext.dialogueText),
-          ),
-        ],
-      ),
-    );
-  }
-}
