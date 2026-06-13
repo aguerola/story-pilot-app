@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:storypilot/domain/models/ai_usage.dart';
 
 /// Structured "scene brief" produced by the AI in a single call: a short
 /// summary, the names of cast members present at the selected moment, and a
@@ -8,6 +9,7 @@ class SceneBrief extends Equatable {
     required this.summary,
     this.presentCharacterNames = const [],
     this.questions = const [],
+    this.usage,
   });
 
   final String summary;
@@ -18,6 +20,16 @@ class SceneBrief extends Equatable {
 
   /// Scene-specific questions the viewer might want to ask.
   final List<String> questions;
+
+  /// Token usage + estimated cost for this call (null for the offline stub).
+  final AiUsage? usage;
+
+  SceneBrief copyWith({AiUsage? usage}) => SceneBrief(
+        summary: summary,
+        presentCharacterNames: presentCharacterNames,
+        questions: questions,
+        usage: usage ?? this.usage,
+      );
 
   factory SceneBrief.fromJson(Map<String, dynamic> json) => SceneBrief(
         summary: (json['summary'] as String?)?.trim() ?? '',
@@ -34,5 +46,6 @@ class SceneBrief extends Equatable {
   }
 
   @override
-  List<Object?> get props => [summary, presentCharacterNames, questions];
+  List<Object?> get props =>
+      [summary, presentCharacterNames, questions, usage];
 }

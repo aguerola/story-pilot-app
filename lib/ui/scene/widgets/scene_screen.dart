@@ -3,10 +3,12 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:storypilot/config/di.dart';
 import 'package:storypilot/data/services/title_session_holder.dart';
+import 'package:storypilot/domain/models/ai_usage.dart';
 import 'package:storypilot/domain/models/scene_context.dart';
 import 'package:storypilot/ui/ask/bloc/ask_bloc.dart';
 import 'package:storypilot/ui/ask/bloc/ask_event.dart';
 import 'package:storypilot/ui/core/ui/character_chip.dart';
+import 'package:storypilot/ui/core/ui/debug_usage.dart';
 import 'package:storypilot/ui/scene/bloc/scene_bloc.dart';
 import 'package:storypilot/ui/scene/bloc/scene_brief_cubit.dart';
 import 'package:storypilot/ui/scene/bloc/scene_event.dart';
@@ -288,9 +290,11 @@ class _SceneLoadedContent extends StatelessWidget {
       builder: (context, briefState) => switch (briefState) {
         // While the AI is working, show a skeleton — no provisional results.
         SceneBriefInitial() || SceneBriefLoading() => const _SceneBriefSkeleton(),
-        SceneBriefReady(:final summary, :final characters) => _SceneBriefContent(
+        SceneBriefReady(:final summary, :final characters, :final usage) =>
+          _SceneBriefContent(
             summary: summary,
             characters: characters,
+            usage: usage,
           ),
         // Only on a real failure fall back to the heuristic characters.
         SceneBriefFailure() => _SceneBriefContent(
@@ -308,11 +312,13 @@ class _SceneBriefContent extends StatelessWidget {
   const _SceneBriefContent({
     required this.summary,
     required this.characters,
+    this.usage,
     this.mutedSummary = false,
   });
 
   final String summary;
   final List<SceneCharacter> characters;
+  final AiUsage? usage;
   final bool mutedSummary;
 
   @override
@@ -340,6 +346,7 @@ class _SceneBriefContent extends StatelessWidget {
                 characters.map((c) => CharacterChip(character: c)).toList(),
           ),
         ],
+        DebugUsage(usage),
       ],
     );
   }

@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:storypilot/config/gemini_model.dart';
+import 'package:storypilot/domain/models/ai_usage.dart';
 
 class SceneAnswer extends Equatable {
   const SceneAnswer({
@@ -22,39 +22,21 @@ class SceneAnswer extends Equatable {
   final int? totalTokens;
   final String? modelId;
 
-  bool get hasTokenUsage =>
-      promptTokens != null ||
-      responseTokens != null ||
-      thoughtsTokens != null ||
-      totalTokens != null;
+  AiUsage get usage => AiUsage(
+        promptTokens: promptTokens,
+        responseTokens: responseTokens,
+        thoughtsTokens: thoughtsTokens,
+        totalTokens: totalTokens,
+        modelId: modelId,
+      );
 
-  String get tokenUsageLabel {
-    final parts = <String>[];
-    if (promptTokens != null) parts.add('$promptTokens prompt');
-    if (responseTokens != null) parts.add('$responseTokens respuesta');
-    if (thoughtsTokens != null && thoughtsTokens! > 0) {
-      parts.add('$thoughtsTokens razonamiento');
-    }
-    if (totalTokens != null) parts.add('$totalTokens total');
-    return parts.join(' · ');
-  }
+  bool get hasTokenUsage => usage.hasTokens;
 
-  double? get estimatedCostUsd {
-    if (modelId == null) return null;
-    return GeminiModel.fromId(modelId!).estimateCostUsd(
-      promptTokens: promptTokens,
-      responseTokens: responseTokens,
-      thoughtsTokens: thoughtsTokens,
-    );
-  }
+  String get tokenUsageLabel => usage.tokenLabel;
 
-  String? get costLabel {
-    final cost = estimatedCostUsd;
-    if (cost == null || modelId == null) return null;
-    final model = GeminiModel.fromId(modelId!);
-    return '${GeminiModel.formatUsd(cost)} USD '
-        '(${model.id}, ${GeminiModel.tierLabel})';
-  }
+  double? get estimatedCostUsd => usage.estimatedCostUsd;
+
+  String? get costLabel => usage.costLabel;
 
   @override
   List<Object?> get props => [

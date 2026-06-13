@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:storypilot/config/di.dart';
+import 'package:storypilot/ui/core/ui/debug_usage.dart';
 import 'package:storypilot/data/services/usage_limit_service.dart';
 import 'package:storypilot/domain/failure.dart';
 import 'package:storypilot/ui/ask/bloc/ask_bloc.dart';
@@ -108,6 +109,7 @@ class _SceneAskPanelState extends State<SceneAskPanel> {
                               style: Theme.of(context).textTheme.titleMedium,
                             ),
                             Text(answer.answer),
+                            DebugUsage(answer.usage),
                           ],
                         ),
                       ),

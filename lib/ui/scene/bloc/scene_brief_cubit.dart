@@ -2,6 +2,7 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:storypilot/config/gemini_model.dart';
 import 'package:storypilot/data/repositories/ask_repository.dart';
+import 'package:storypilot/domain/models/ai_usage.dart';
 import 'package:storypilot/domain/models/cast_member.dart';
 import 'package:storypilot/domain/models/match_confidence.dart';
 import 'package:storypilot/domain/models/scene_context.dart';
@@ -31,6 +32,7 @@ class SceneBriefCubit extends Cubit<SceneBriefState> {
             summary: data.summary,
             characters: _resolveCharacters(data.presentCharacterNames, cast),
             questions: data.questions,
+            usage: data.usage,
           ),
         );
       case Error(:final failure):
@@ -86,14 +88,16 @@ final class SceneBriefReady extends SceneBriefState {
     required this.summary,
     required this.characters,
     required this.questions,
+    this.usage,
   });
 
   final String summary;
   final List<SceneCharacter> characters;
   final List<String> questions;
+  final AiUsage? usage;
 
   @override
-  List<Object?> get props => [summary, characters, questions];
+  List<Object?> get props => [summary, characters, questions, usage];
 }
 
 final class SceneBriefFailure extends SceneBriefState {

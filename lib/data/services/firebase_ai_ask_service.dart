@@ -6,6 +6,7 @@ import 'package:storypilot/config/gemini_model.dart';
 import 'package:storypilot/data/services/ask_service.dart';
 import 'package:storypilot/data/services/local_stub_ask_service.dart';
 import 'package:storypilot/domain/failure.dart';
+import 'package:storypilot/domain/models/ai_usage.dart';
 import 'package:storypilot/domain/models/cast_member.dart';
 import 'package:storypilot/domain/models/scene_answer.dart';
 import 'package:storypilot/domain/models/scene_brief.dart';
@@ -69,7 +70,18 @@ class FirebaseAiAskService implements AskService {
         return _fallback.brief(context: context, cast: cast, model: model);
       }
       final json = jsonDecode(text) as Map<String, dynamic>;
-      return Success(SceneBrief.fromJson(json));
+      final usage = response.usageMetadata;
+      return Success(
+        SceneBrief.fromJson(json).copyWith(
+          usage: AiUsage(
+            promptTokens: usage?.promptTokenCount,
+            responseTokens: usage?.candidatesTokenCount,
+            thoughtsTokens: usage?.thoughtsTokenCount,
+            totalTokens: usage?.totalTokenCount,
+            modelId: model.id,
+          ),
+        ),
+      );
     } catch (error, stackTrace) {
       developer.log(
         'brief generation failed, using fallback',
