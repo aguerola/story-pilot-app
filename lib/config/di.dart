@@ -13,6 +13,7 @@ import 'package:storypilot/data/services/firebase_ai_ask_service.dart';
 import 'package:storypilot/data/services/local_cache_service.dart';
 import 'package:storypilot/data/services/local_stub_ask_service.dart';
 import 'package:storypilot/data/services/open_subtitles_service.dart';
+import 'package:storypilot/data/services/subtitle_functions_client.dart';
 import 'package:storypilot/ui/ask/bloc/ask_bloc.dart';
 import 'package:storypilot/data/services/scene_analyzer_service.dart';
 import 'package:storypilot/data/services/settings_service.dart';
@@ -55,7 +56,14 @@ Future<void> configureDependencies() async {
       ),
     )
     ..registerLazySingleton(() => TmdbService(getIt<Dio>()))
-    ..registerLazySingleton(() => OpenSubtitlesService(getIt<Dio>()))
+    ..registerLazySingleton(
+      () => OpenSubtitlesService(
+        getIt<Dio>(),
+        functionsClient: Env.useStoryPilotServer
+            ? FirebaseSubtitleFunctionsClient()
+            : null,
+      ),
+    )
     ..registerLazySingleton(SubtitleParserService.new)
     ..registerLazySingleton(
       () => LocalCacheService(getIt<SharedPreferences>()),

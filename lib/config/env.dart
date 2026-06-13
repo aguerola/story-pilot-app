@@ -8,6 +8,11 @@ class Env {
     'CORS_PROXY',
     defaultValue: '',
   );
+  static const useFunctionsEmulator = bool.fromEnvironment(
+    'USE_FUNCTIONS_EMULATOR',
+  );
+
+  static const functionsRegion = 'europe-west1';
 
   static const tmdbBaseUrl = 'https://api.themoviedb.org/3';
   static const openSubtitlesBaseUrl = 'https://api.opensubtitles.com/api/v1';
@@ -35,4 +40,5 @@ class Env {
 
   static bool get hasTmdbKey => tmdbApiKey.isNotEmpty;
   static bool get hasOpenSubtitlesKey => openSubtitlesApiKey.isNotEmpty;
+  static bool get useStoryPilotServer => kIsWeb;
 }

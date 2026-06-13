@@ -104,7 +104,10 @@ In **Settings → Secrets and variables → Actions**, add:
 |--------|-------------|
 | `FIREBASE_SERVICE_ACCOUNT` | Full JSON from Firebase Console → Project settings → Service accounts → Generate new private key |
 | `TMDB_API_KEY` | TMDB API key |
-| `OPENSUBTITLES_API_KEY` | OpenSubtitles API key |
+
+Production web uses **Firebase Callable Functions** (`cloud_functions` SDK) for subtitles via [story-pilot-server](../story-pilot-server). The OpenSubtitles API key lives only on the server. For local web dev against the emulator, add `--dart-define=USE_FUNCTIONS_EMULATOR=true` and run `firebase emulators:start --only functions` in story-pilot-server.
+
+`OPENSUBTITLES_API_KEY` is only needed for local native/direct mode (non-web).
 
 The service account needs at least **Firebase Hosting Admin** (or **Firebase Admin** for simplicity).
 
@@ -121,7 +124,6 @@ The service account needs at least **Firebase Hosting Admin** (or **Firebase Adm
 ```bash
 flutter build web --release \
   --dart-define=TMDB_API_KEY=your_tmdb_key \
-  --dart-define=OPENSUBTITLES_API_KEY=your_opensubtitles_key \
   --dart-define=USE_FIREBASE_AI=true
 
 firebase deploy --only hosting
