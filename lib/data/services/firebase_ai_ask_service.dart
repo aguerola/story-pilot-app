@@ -122,7 +122,7 @@ Momento seleccionado: $timestamp
 ${activeLineSection}Escena seleccionada (diálogo ${context.sceneWindowLabel} del momento):
 $sceneDialogue
 
-Contexto previo (diálogo desde el inicio hasta el momento seleccionado; solo para referencias, NO para resumir):
+Contexto previo (todos los subtítulos desde el inicio hasta el momento seleccionado; solo para referencias, NO para resumir):
 $priorDialogue
 
 Personajes detectados en la escena: ${characters.isEmpty ? 'ninguno' : characters}

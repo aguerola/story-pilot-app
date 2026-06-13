@@ -27,11 +27,12 @@ class SceneAnalyzerService {
       timestampMs,
       sceneAfterSeconds,
     );
+    final priorLines = linesFromStartThroughTimestamp(
+      subtitles.lines,
+      timestampMs,
+    );
     final dialogueText = aggregateDialogue(windowLines);
     final askDialogueText = aggregateDialogue(askLines);
-    final priorLines = askLines
-        .where((line) => !windowLines.contains(line))
-        .toList();
     final priorDialogueText = aggregateDialogue(priorLines);
     final normalizedDialogue = normalizeText(dialogueText);
     SubtitleLine? activeLine;

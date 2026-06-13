@@ -69,8 +69,32 @@ void main() {
 
     expect(context.dialogueText, 'Inicio\nMitad');
     expect(context.askDialogueText, 'Inicio\nMitad');
-    expect(context.priorDialogueText, isEmpty);
+    expect(context.priorDialogueText, 'Inicio\nMitad');
     expect(context.askDialogueText, isNot(contains('Después')));
+  });
+
+  test('prior dialogue includes all subtitles from start through timestamp', () {
+    final document = SubtitleDocument(
+      titleId: 1,
+      language: 'es',
+      fileId: '1',
+      lines: const [
+        SubtitleLine(startMs: 0, endMs: 10000, text: 'Inicio'),
+        SubtitleLine(startMs: 50000, endMs: 55000, text: 'Mitad'),
+        SubtitleLine(startMs: 140000, endMs: 145000, text: 'Cerca del momento'),
+        SubtitleLine(startMs: 200000, endMs: 205000, text: 'Después'),
+      ],
+    );
+
+    final context = analyzer.buildContext(
+      subtitles: document,
+      cast: const [],
+      timestampMs: 150000,
+    );
+
+    expect(context.priorDialogueText, 'Inicio\nMitad\nCerca del momento');
+    expect(context.priorDialogueText, isNot(contains('Después')));
+    expect(context.dialogueText, contains('Cerca del momento'));
   });
 
   test('scene window spans two minutes before and thirty seconds after', () {
@@ -93,6 +117,7 @@ void main() {
     );
 
     expect(context.dialogueText, 'Inicio\nAntes\nMitad');
+    expect(context.priorDialogueText, 'Inicio\nAntes\nMitad');
     expect(context.sceneBeforeSeconds, 120);
     expect(context.sceneAfterSeconds, 30);
   });

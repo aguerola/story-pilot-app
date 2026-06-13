@@ -23,6 +23,7 @@ void main() {
     expect(content, contains('2 min antes → 30s después'));
     expect(content, contains('Final de la escena.'));
     expect(content, contains('Contexto previo'));
+    expect(content, contains('todos los subtítulos desde el inicio'));
     expect(content, contains('Inicio\nMitad'));
     expect(content, contains('¿Qué pasa al final?'));
     expect(content, contains('ESCENA SELECCIONADA'));

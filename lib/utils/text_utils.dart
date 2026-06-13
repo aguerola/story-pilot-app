@@ -33,6 +33,13 @@ List<SubtitleLine> linesFromStartThroughWindow(
   return lines.where((line) => line.startMs <= end).toList();
 }
 
+List<SubtitleLine> linesFromStartThroughTimestamp(
+  List<SubtitleLine> lines,
+  int timestampMs,
+) {
+  return lines.where((line) => line.startMs <= timestampMs).toList();
+}
+
 String aggregateDialogue(List<SubtitleLine> lines) {
   return lines.map((l) => l.text.trim()).where((t) => t.isNotEmpty).join('\n');
 }
