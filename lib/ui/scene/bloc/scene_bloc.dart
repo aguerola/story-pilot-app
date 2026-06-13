@@ -28,7 +28,13 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> {
     if (subtitles == null) {
       return;
     }
-    await _loadContext(event.initialTimestampMs, emit);
+    // Don't auto-load the very start of the title — wait until the user tells
+    // us the moment they're watching. Avoids a useless 00:00:00 scene + summary.
+    if (event.initialTimestampMs > 0) {
+      await _loadContext(event.initialTimestampMs, emit);
+    } else {
+      emit(const SceneAwaitingTimestamp());
+    }
   }
 
   Future<SubtitleDocument?> _resolveSubtitles(

@@ -15,7 +15,7 @@ class DetailActions extends StatelessWidget {
         FilledButton.icon(
           onPressed: () => context.go('/title/$titleId/scene'),
           icon: const Icon(Icons.theaters),
-          label: const Text('Scene'),
+          label: const Text('Ver qué pasa en una escena'),
         ),
       ],
     );

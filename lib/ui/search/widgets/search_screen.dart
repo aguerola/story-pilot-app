@@ -45,11 +45,17 @@ class _SearchViewState extends State<_SearchView> {
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Text(
+              'Entiende cualquier escena, sin spoilers.',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 12),
             TextField(
               controller: _controller,
               decoration: const InputDecoration(
-                labelText: 'Buscar película o serie',
+                labelText: 'Busca una película o serie',
                 prefixIcon: Icon(Icons.search),
               ),
               onChanged: (value) =>
@@ -62,7 +68,7 @@ class _SearchViewState extends State<_SearchView> {
               child: BlocBuilder<SearchBloc, SearchState>(
                 builder: (context, state) => switch (state) {
                   SearchInitial() => const Center(
-                      child: Text('Escribe para buscar en TMDB'),
+                      child: Text('Empieza escribiendo el título'),
                     ),
                   SearchLoading() => const Center(
                       child: CircularProgressIndicator(),

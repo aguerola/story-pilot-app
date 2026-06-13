@@ -1,7 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:storypilot/config/gemini_model.dart';
 import 'package:storypilot/data/repositories/ask_repository.dart';
 import 'package:storypilot/data/services/auth_service.dart';
-import 'package:storypilot/data/services/settings_service.dart';
 import 'package:storypilot/data/services/usage_limit_service.dart';
 import 'package:storypilot/domain/models/scene_context.dart';
 import 'package:storypilot/domain/result.dart';
@@ -11,7 +11,6 @@ import 'package:storypilot/ui/ask/bloc/ask_state.dart';
 class AskBloc extends Bloc<AskEvent, AskState> {
   AskBloc(
     this._repository,
-    this._settingsService,
     this._authService,
     this._usageLimitService,
   ) : super(const AskInitial()) {
@@ -21,7 +20,6 @@ class AskBloc extends Bloc<AskEvent, AskState> {
   }
 
   final AskRepository _repository;
-  final SettingsService _settingsService;
   final AuthService _authService;
   final UsageLimitService _usageLimitService;
   SceneContext? _context;
@@ -64,7 +62,8 @@ class AskBloc extends Bloc<AskEvent, AskState> {
     final result = await _repository.ask(
       context: context,
       question: event.question.trim(),
-      model: _settingsService.geminiModel,
+      // Always use Lite for now; the model picker is disabled in the UI.
+      model: GeminiModel.flashLite25,
     );
     switch (result) {
       case Success(:final data):

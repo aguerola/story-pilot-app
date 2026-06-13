@@ -17,6 +17,12 @@ final class SceneLoading extends SceneState {
   const SceneLoading();
 }
 
+/// Subtitles are ready but no scene is loaded yet: we wait for the user to
+/// enter the moment they're watching instead of defaulting to 00:00:00.
+final class SceneAwaitingTimestamp extends SceneState {
+  const SceneAwaitingTimestamp();
+}
+
 final class SceneLoaded extends SceneState {
   const SceneLoaded(this.context);
 

@@ -103,7 +103,7 @@ void main() {
   );
 
   blocTest<SceneBloc, SceneState>(
-    'auto-downloads subtitles and emits loaded',
+    'auto-downloads subtitles then awaits a timestamp instead of loading 0',
     build: () {
       session.subtitleDocument = null;
       when(() => subtitleRepository.getCachedForTitle(any()))
@@ -114,20 +114,12 @@ void main() {
           mediaType: MediaType.movie,
         ),
       ).thenAnswer((_) async => Success(document));
-      when(
-        () => repository.getContext(
-          subtitles: document,
-          cast: const [],
-          timestampMs: 0,
-          titleLabel: 'Matrix',
-        ),
-      ).thenAnswer((_) async => Success(context));
       return SceneBloc(repository, subtitleRepository, session);
     },
     act: (bloc) => bloc.add(const SceneStarted(tmdbId: 1)),
     expect: () => [
       const SceneLoading(),
-      isA<SceneLoaded>(),
+      const SceneAwaitingTimestamp(),
     ],
   );
 

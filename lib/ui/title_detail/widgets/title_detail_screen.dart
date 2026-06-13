@@ -7,11 +7,8 @@ import 'package:storypilot/ui/title_detail/bloc/title_detail_event.dart';
 import 'package:storypilot/ui/title_detail/bloc/title_detail_state.dart';
 import 'package:storypilot/ui/title_detail/widgets/detail_actions.dart';
 import 'package:storypilot/ui/title_detail/widgets/detail_cast_section.dart';
-import 'package:storypilot/ui/title_detail/widgets/detail_crew_section.dart';
 import 'package:storypilot/ui/title_detail/widgets/detail_genre_chips.dart';
 import 'package:storypilot/ui/title_detail/widgets/detail_hero.dart';
-import 'package:storypilot/ui/title_detail/widgets/detail_keywords_section.dart';
-import 'package:storypilot/ui/title_detail/widgets/detail_meta_section.dart';
 import 'package:storypilot/ui/title_detail/widgets/detail_seasons_section.dart';
 import 'package:storypilot/ui/title_detail/widgets/detail_tagline.dart';
 
@@ -43,7 +40,7 @@ class _TitleDetailView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Details')),
+      appBar: AppBar(title: const Text('Detalles')),
       body: BlocBuilder<TitleDetailBloc, TitleDetailState>(
         builder: (context, state) => switch (state) {
           TitleDetailInitial() || TitleDetailLoading() => const Center(
@@ -67,20 +64,18 @@ class _TitleDetailView extends StatelessWidget {
                         DetailGenreChips(genres: detail.genres),
                         if (detail.overview.isNotEmpty) ...[
                           Text(
-                            'Overview',
+                            'Sinopsis',
                             style: Theme.of(context).textTheme.titleMedium,
                           ),
                           const SizedBox(height: 8),
                           Text(detail.overview),
                           const SizedBox(height: 16),
                         ],
-                        DetailMetaSection(detail: detail),
-                        DetailCrewSection(crew: detail.crew),
+                        DetailActions(titleId: id),
+                        const SizedBox(height: 8),
                         DetailCastSection(cast: detail.cast),
                         if (detail.seasons != null)
                           DetailSeasonsSection(seasons: detail.seasons!),
-                        DetailKeywordsSection(keywords: detail.keywords),
-                        DetailActions(titleId: id),
                       ],
                     ),
                   ),

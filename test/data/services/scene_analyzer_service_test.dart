@@ -48,6 +48,43 @@ void main() {
     expect(context.characters.first.confidence, MatchConfidence.high);
   });
 
+  test('ignores stage directions when detecting characters', () {
+    final document = SubtitleDocument(
+      titleId: 1,
+      language: 'es',
+      fileId: '1',
+      lines: const [
+        SubtitleLine(
+          startMs: 0,
+          endMs: 10000,
+          text: '(SPEAKING SOFTLY IN NA\'VI)\nJake Sully will go first.',
+        ),
+      ],
+    );
+
+    const cast = [
+      // Credited generic role that also appears inside the stage direction.
+      CastMember(id: 1, name: 'Extra', characterName: 'Na\'vi', billingOrder: 20),
+      CastMember(
+        id: 2,
+        name: 'Sam Worthington',
+        characterName: 'Jake Sully',
+        billingOrder: 0,
+      ),
+    ];
+
+    final context = analyzer.buildContext(
+      subtitles: document,
+      cast: cast,
+      timestampMs: 5000,
+    );
+
+    final names =
+        context.characters.map((c) => c.castMember.characterName).toList();
+    expect(names, isNot(contains('Na\'vi')));
+    expect(names, contains('Jake Sully'));
+  });
+
   test('ask dialogue includes subtitles from start through timestamp plus window',
       () {
     final document = SubtitleDocument(

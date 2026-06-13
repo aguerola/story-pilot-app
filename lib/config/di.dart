@@ -23,6 +23,7 @@ import 'package:storypilot/data/services/tmdb_service.dart';
 import 'package:storypilot/ui/auth/bloc/auth_bloc.dart';
 import 'package:storypilot/ui/auth/bloc/auth_event.dart';
 import 'package:storypilot/ui/scene/bloc/scene_bloc.dart';
+import 'package:storypilot/ui/scene/bloc/scene_summary_cubit.dart';
 import 'package:storypilot/ui/search/bloc/search_bloc.dart';
 import 'package:storypilot/ui/title_detail/bloc/title_detail_bloc.dart';
 
@@ -98,10 +99,10 @@ Future<void> configureDependencies() async {
         getIt<TitleSessionHolder>(),
       ),
     )
+    ..registerFactory(() => SceneSummaryCubit(getIt<AskRepository>()))
     ..registerFactory(
       () => AskBloc(
         getIt<AskRepository>(),
-        getIt<SettingsService>(),
         getIt<AuthService>(),
         getIt<UsageLimitService>(),
       ),

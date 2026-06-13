@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:storypilot/config/di.dart';
-import 'package:storypilot/config/gemini_model.dart';
-import 'package:storypilot/data/services/settings_service.dart';
 import 'package:storypilot/data/services/usage_limit_service.dart';
 import 'package:storypilot/domain/failure.dart';
 import 'package:storypilot/ui/ask/bloc/ask_bloc.dart';
@@ -11,6 +9,13 @@ import 'package:storypilot/ui/ask/bloc/ask_event.dart';
 import 'package:storypilot/ui/ask/bloc/ask_state.dart';
 import 'package:storypilot/ui/auth/bloc/auth_bloc.dart';
 import 'package:storypilot/ui/auth/bloc/auth_state.dart';
+
+const _suggestedQuestions = [
+  '¿Quién está en esta escena?',
+  '¿Qué acaba de pasar?',
+  '¿Por qué hacen esto?',
+  '¿Qué significa esta conversación?',
+];
 
 class SceneAskPanel extends StatefulWidget {
   const SceneAskPanel({
@@ -26,24 +31,11 @@ class SceneAskPanel extends StatefulWidget {
 
 class _SceneAskPanelState extends State<SceneAskPanel> {
   final _controller = TextEditingController();
-  late GeminiModel _selectedModel;
-
-  @override
-  void initState() {
-    super.initState();
-    _selectedModel = getIt<SettingsService>().geminiModel;
-  }
 
   @override
   void dispose() {
     _controller.dispose();
     super.dispose();
-  }
-
-  Future<void> _onModelChanged(bool useFlash) async {
-    final model = useFlash ? GeminiModel.flash25 : GeminiModel.flashLite25;
-    setState(() => _selectedModel = model);
-    await getIt<SettingsService>().setGeminiModel(model);
   }
 
   bool _isAuthenticated(BuildContext context) =>
@@ -70,31 +62,9 @@ class _SceneAskPanelState extends State<SceneAskPanel> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                'Preguntar sobre la escena',
-                style: theme.textTheme.titleMedium,
-              ),
-            ),
-            Text(
-              GeminiModel.flashLite25.shortLabel,
-              style: _selectedModel == GeminiModel.flashLite25
-                  ? theme.textTheme.labelLarge
-                  : mutedStyle,
-            ),
-            Switch(
-              value: _selectedModel == GeminiModel.flash25,
-              onChanged: widget.enabled ? _onModelChanged : null,
-            ),
-            Text(
-              GeminiModel.flash25.shortLabel,
-              style: _selectedModel == GeminiModel.flash25
-                  ? theme.textTheme.labelLarge
-                  : mutedStyle,
-            ),
-          ],
+        Text(
+          'Pregunta lo que quieras',
+          style: theme.textTheme.titleMedium,
         ),
         if (!isAuthenticated) ...[
           const SizedBox(height: 4),
@@ -109,14 +79,13 @@ class _SceneAskPanelState extends State<SceneAskPanel> {
         Expanded(
           child: !widget.enabled
               ? const Center(
-                  child: Text('Carga subtítulos para preguntar'),
+                  child: Text('Indica un momento para empezar a preguntar'),
                 )
               : BlocBuilder<AskBloc, AskState>(
                   builder: (context, state) => switch (state) {
-                    AskInitial() => const Center(
-                        child: Text(
-                          'Pregunta quién está en la escena o qué ocurre',
-                        ),
+                    AskInitial() => _SuggestedQuestions(
+                        enabled: canSubmit,
+                        onSelected: (question) => _submit(context, question),
                       ),
                     AskAnswering(:final question) => Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -137,42 +106,6 @@ class _SceneAskPanelState extends State<SceneAskPanel> {
                               style: Theme.of(context).textTheme.titleMedium,
                             ),
                             Text(answer.answer),
-                            if (answer.sources.isNotEmpty) ...[
-                              const SizedBox(height: 12),
-                              Text(
-                                'Fuentes',
-                                style: Theme.of(context).textTheme.labelLarge,
-                              ),
-                              ...answer.sources.map(Text.new),
-                            ],
-                            if (answer.hasTokenUsage) ...[
-                              const SizedBox(height: 12),
-                              Text(
-                                'Tokens: ${answer.tokenUsageLabel}',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodySmall
-                                    ?.copyWith(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurfaceVariant,
-                                    ),
-                              ),
-                            ],
-                            if (answer.costLabel != null) ...[
-                              const SizedBox(height: 4),
-                              Text(
-                                'Coste estimado: ${answer.costLabel}',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodySmall
-                                    ?.copyWith(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurfaceVariant,
-                                    ),
-                              ),
-                            ],
                           ],
                         ),
                       ),
@@ -216,8 +149,46 @@ class _SceneAskPanelState extends State<SceneAskPanel> {
   }
 
   void _submit(BuildContext context, String question) {
+    if (question.trim().isEmpty) return;
     context.read<AskBloc>().add(AskQuestionSubmitted(question));
     _controller.clear();
+  }
+}
+
+class _SuggestedQuestions extends StatelessWidget {
+  const _SuggestedQuestions({required this.enabled, required this.onSelected});
+
+  final bool enabled;
+  final ValueChanged<String> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Pregunta quién está en la escena o qué ocurre',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: _suggestedQuestions
+                .map(
+                  (question) => ActionChip(
+                    label: Text(question),
+                    onPressed: enabled ? () => onSelected(question) : null,
+                  ),
+                )
+                .toList(),
+          ),
+        ],
+      ),
+    );
   }
 }
 

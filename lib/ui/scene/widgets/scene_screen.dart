@@ -10,6 +10,7 @@ import 'package:storypilot/ui/core/ui/subtitle_line_widget.dart';
 import 'package:storypilot/ui/scene/bloc/scene_bloc.dart';
 import 'package:storypilot/ui/scene/bloc/scene_event.dart';
 import 'package:storypilot/ui/scene/bloc/scene_state.dart';
+import 'package:storypilot/ui/scene/bloc/scene_summary_cubit.dart';
 import 'package:storypilot/ui/scene/widgets/scene_ask_panel.dart';
 import 'package:storypilot/utils/timestamp_utils.dart';
 
@@ -28,6 +29,7 @@ class SceneScreen extends StatelessWidget {
           create: (_) => getIt<SceneBloc>()..add(SceneStarted(tmdbId: id)),
         ),
         BlocProvider(create: (_) => getIt<AskBloc>()),
+        BlocProvider(create: (_) => getIt<SceneSummaryCubit>()),
       ],
       child: _SceneView(id: id),
     );
@@ -87,13 +89,16 @@ class _SceneViewState extends State<_SceneView> {
       listener: (context, state) {
         if (state is SceneLoaded) {
           context.read<AskBloc>().add(AskContextUpdated(state.context));
+          // Free, Lite-only summary shown automatically; never counts toward
+          // the daily question quota.
+          context.read<SceneSummaryCubit>().summarize(state.context);
         }
       },
       child: Scaffold(
-        appBar: AppBar(title: const Text('Escena actual')),
+        appBar: AppBar(title: const Text('¿Qué está pasando?')),
         body: BlocBuilder<SceneBloc, SceneState>(
           builder: (context, state) {
-            if (state is SceneLoaded) {
+            if (state is SceneLoaded || state is SceneAwaitingTimestamp) {
               final lastLine = getIt<TitleSessionHolder>()
                   .subtitleDocument
                   ?.lines
@@ -135,6 +140,9 @@ class _SceneViewState extends State<_SceneView> {
                     onChanged: _onSliderChanged,
                     onChangeEnd: _onSliderReleased,
                   ),
+                  if (state is SceneLoaded)
+                    _SpoilerGuardBanner(timestampMs: state.context.timestampMs),
+                  const SizedBox(height: 8),
                   Expanded(
                     child: LayoutBuilder(
                       builder: (context, constraints) {
@@ -185,9 +193,85 @@ class _SceneContextPanel extends StatelessWidget {
     return switch (state) {
       SceneInitial() || SceneLoading() =>
         const Center(child: LinearProgressIndicator()),
+      SceneAwaitingTimestamp() => const _AwaitingTimestampPrompt(),
       SceneFailure(:final failure) => Center(child: Text(failure.message)),
       SceneLoaded(:final context) => _SceneLoadedContent(sceneContext: context),
     };
+  }
+}
+
+class _AwaitingTimestampPrompt extends StatelessWidget {
+  const _AwaitingTimestampPrompt();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.schedule_outlined,
+              size: 40,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              '¿Por qué minuto vas?',
+              style: theme.textTheme.titleMedium,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Indica el momento que estás viendo (arriba) y te explico '
+              'qué está pasando.',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SpoilerGuardBanner extends StatelessWidget {
+  const _SpoilerGuardBanner({required this.timestampMs});
+
+  final int timestampMs;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.green.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.green.withValues(alpha: 0.4)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.shield_outlined, size: 18, color: Colors.green.shade700),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Vas por el ${formatMsToTimestamp(timestampMs)} · no te cuento '
+              'nada de lo que pasa después',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: Colors.green.shade800,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -198,45 +282,98 @@ class _SceneLoadedContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    final theme = Theme.of(context);
+    return ListView(
       children: [
-        if (sceneContext.activeLine != null) ...[
-          Text(
-            'Subtítulo activo',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 8),
-          SubtitleLineWidget(
-            line: sceneContext.activeLine!,
-            highlighted: true,
-          ),
-        ],
-        const SizedBox(height: 16),
-        Text(
-          'Escena: ${sceneContext.sceneWindowLabel}',
-          style: Theme.of(context).textTheme.titleMedium,
-        ),
+        Text('Qué está pasando', style: theme.textTheme.titleMedium),
         const SizedBox(height: 8),
-        Expanded(
-          child: SingleChildScrollView(
+        const _SceneSummary(),
+        const SizedBox(height: 20),
+        if (sceneContext.characters.isNotEmpty) ...[
+          Text('Personajes en escena', style: theme.textTheme.titleMedium),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: sceneContext.characters
+                .map((c) => CharacterChip(character: c))
+                .toList(),
+          ),
+          const SizedBox(height: 12),
+        ],
+        _OriginalDialogue(sceneContext: sceneContext),
+      ],
+    );
+  }
+}
+
+class _SceneSummary extends StatelessWidget {
+  const _SceneSummary();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return BlocBuilder<SceneSummaryCubit, SceneSummaryState>(
+      builder: (context, state) => switch (state) {
+        SceneSummaryInitial() || SceneSummaryLoading() => Row(
+            children: [
+              const SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'Analizando la escena…',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        SceneSummaryReady(:final text) => Text(
+            text,
+            style: theme.textTheme.bodyLarge,
+          ),
+        SceneSummaryFailure() => Text(
+            'No se pudo generar el resumen automático. Puedes preguntar abajo.',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+      },
+    );
+  }
+}
+
+class _OriginalDialogue extends StatelessWidget {
+  const _OriginalDialogue({required this.sceneContext});
+
+  final SceneContext sceneContext;
+
+  @override
+  Widget build(BuildContext context) {
+    return Theme(
+      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+      child: ExpansionTile(
+        tilePadding: EdgeInsets.zero,
+        childrenPadding: const EdgeInsets.only(bottom: 8),
+        title: const Text('Ver diálogo original'),
+        subtitle: Text('Escena: ${sceneContext.sceneWindowLabel}'),
+        children: [
+          if (sceneContext.activeLine != null) ...[
+            SubtitleLineWidget(
+              line: sceneContext.activeLine!,
+              highlighted: true,
+            ),
+            const SizedBox(height: 8),
+          ],
+          Align(
+            alignment: Alignment.centerLeft,
             child: Text(sceneContext.dialogueText),
           ),
-        ),
-        const SizedBox(height: 12),
-        Text(
-          'Personajes',
-          style: Theme.of(context).textTheme.titleMedium,
-        ),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: sceneContext.characters
-              .map((c) => CharacterChip(character: c))
-              .toList(),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

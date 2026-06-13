@@ -9,6 +9,21 @@ class SceneAnalyzerService {
   static const sceneBeforeSeconds = 120;
   static const sceneAfterSeconds = 30;
 
+  /// Credited roles that are not real named characters (species, crowd, etc.).
+  /// Matched against the full normalized character name, so named characters
+  /// like "Dr. Voller" are never excluded.
+  static const _nonCharacterRoles = {
+    'navi',
+    "na'vi",
+    'crowd',
+    'villager',
+    'villagers',
+    'soldier',
+    'soldiers',
+    'guard',
+    'guards',
+  };
+
   SceneContext buildContext({
     required SubtitleDocument subtitles,
     required List<CastMember> cast,
@@ -41,7 +56,10 @@ class SceneAnalyzerService {
     final askDialogueText = aggregateDialogue(askLines);
     final priorDialogueText = aggregateDialogue(priorLines);
     final followingDialogueText = aggregateDialogue(followingLines);
-    final normalizedDialogue = normalizeText(dialogueText);
+    // Match character names against spoken words only — stage directions like
+    // "(SPEAKING SOFTLY IN NA'VI)" must not count as dialogue.
+    final normalizedDialogue =
+        normalizeText(stripStageDirections(dialogueText));
     SubtitleLine? activeLine;
     for (final line in subtitles.lines) {
       if (line.containsTimestamp(timestampMs)) {
@@ -52,6 +70,9 @@ class SceneAnalyzerService {
 
     final characters = <SceneCharacter>[];
     for (final member in cast) {
+      if (_nonCharacterRoles.contains(normalizeText(member.characterName))) {
+        continue;
+      }
       final match = _matchCharacter(member, normalizedDialogue, dialogueText);
       if (match != null) {
         characters.add(match);

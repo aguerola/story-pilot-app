@@ -60,14 +60,12 @@ void main() {
 
     expect(content.indexOf('Título: Matrix (1999)'), lessThan(content.indexOf('Contexto previo')));
     expect(content.indexOf('Contexto previo'), lessThan(content.indexOf('Inicio\nMitad')));
-    expect(
-      content.indexOf('Diálogo inmediatamente posterior'),
-      lessThan(content.indexOf('Momento seleccionado')),
-    );
     expect(content.indexOf('Momento seleccionado: 01:01:01'), lessThan(content.indexOf('Pregunta:')));
     expect(content.trim().endsWith('¿Qué pasa al final?'), isTrue);
     expect(content, contains('Inicio\nMitad'));
-    expect(content, contains('Justo después'));
+    // Post-moment dialogue must never be sent to the model (anti-spoiler).
+    expect(content, isNot(contains('Justo después')));
+    expect(content, isNot(contains('Diálogo inmediatamente posterior')));
     expect(content, contains('Personajes detectados automáticamente'));
     expect(content, isNot(contains('Escena seleccionada')));
   });

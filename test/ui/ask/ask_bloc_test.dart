@@ -5,7 +5,6 @@ import 'package:mocktail/mocktail.dart';
 import 'package:storypilot/config/gemini_model.dart';
 import 'package:storypilot/data/repositories/ask_repository.dart';
 import 'package:storypilot/data/services/auth_service.dart';
-import 'package:storypilot/data/services/settings_service.dart';
 import 'package:storypilot/data/services/usage_limit_service.dart';
 import 'package:storypilot/domain/models/cast_member.dart';
 import 'package:storypilot/domain/models/match_confidence.dart';
@@ -18,8 +17,6 @@ import 'package:storypilot/ui/ask/bloc/ask_state.dart';
 
 class MockAskRepository extends Mock implements AskRepository {}
 
-class MockSettingsService extends Mock implements SettingsService {}
-
 class MockAuthService extends Mock implements AuthService {}
 
 class MockUsageLimitService extends Mock implements UsageLimitService {}
@@ -28,7 +25,6 @@ class MockUser extends Mock implements User {}
 
 void main() {
   late MockAskRepository repository;
-  late MockSettingsService settingsService;
   late MockAuthService authService;
   late MockUsageLimitService usageLimitService;
 
@@ -55,10 +51,8 @@ void main() {
 
   setUp(() {
     repository = MockAskRepository();
-    settingsService = MockSettingsService();
     authService = MockAuthService();
     usageLimitService = MockUsageLimitService();
-    when(() => settingsService.geminiModel).thenReturn(GeminiModel.defaultModel);
     when(() => authService.currentUser).thenReturn(null);
     when(() => usageLimitService.canAskAnonymously()).thenReturn(true);
     when(() => usageLimitService.recordAnonymousQuestion()).thenReturn(null);
@@ -66,7 +60,6 @@ void main() {
 
   AskBloc createBloc() => AskBloc(
         repository,
-        settingsService,
         authService,
         usageLimitService,
       )..add(AskStarted(context));

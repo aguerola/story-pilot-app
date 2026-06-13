@@ -60,3 +60,16 @@ bool containsWord(String haystack, String needle) {
   final pattern = RegExp(r'\b' + RegExp.escape(needle) + r'\b');
   return pattern.hasMatch(haystack);
 }
+
+final _stageDirectionPattern = RegExp(r'[\(\[][^\)\]]*[\)\]]');
+final _extraWhitespacePattern = RegExp(r'[ \t]{2,}');
+
+/// Removes subtitle stage directions / closed-caption annotations such as
+/// `(SPEAKING SOFTLY IN NA'VI)` or `[PANTING]` so they aren't mistaken for
+/// spoken dialogue (e.g. a credited "Na'vi" role matching the annotation).
+String stripStageDirections(String input) {
+  return input
+      .replaceAll(_stageDirectionPattern, ' ')
+      .replaceAll(_extraWhitespacePattern, ' ')
+      .trim();
+}

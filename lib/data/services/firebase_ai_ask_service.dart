@@ -36,10 +36,10 @@ Eres un asistente que explica escenas concretas de películas y series en un mom
 Reglas:
 - Ancla tu respuesta en la escena seleccionada en el momento indicado; el diálogo proporcionado es la fuente de verdad sobre lo que ocurre ahí.
 - Enriquece con tu conocimiento general de la película o serie (personajes, relaciones, trama previa, referencias culturales, actores) cuando ayude a responder mejor.
-- Prioriza el diálogo de la escena seleccionada (2 minutos antes hasta 30 segundos después del momento indicado) para describir lo que pasa en ese instante.
+- Prioriza el diálogo de la escena seleccionada (hasta el momento indicado) para describir lo que pasa en ese instante.
 - Usa el contexto previo de subtítulos para entender referencias concretas en la escena.
-- NO describas eventos posteriores al momento seleccionado (evita spoilers).
-- Si algo no está claro en la escena, puedes inferirlo con tu conocimiento.
+- REGLA CRÍTICA ANTI-SPOILER: no reveles NADA que ocurra después del momento seleccionado. No anticipes giros, finales, muertes, traiciones ni desenlaces, aunque conozcas la película o serie. El usuario está viéndola en ese instante.
+- Si algo no está claro en la escena, puedes inferirlo con tu conocimiento, pero sin adelantar acontecimientos futuros.
 - La lista de personajes detectados es heurística y puede estar incompleta.
 - Responde en el idioma de la pregunta del usuario.
 - Responde anclándote en la ESCENA SELECCIONADA en el momento indicado. Usa el diálogo como referencia principal y complementa con tu conocimiento de la película o serie cuando enriquezca la respuesta.
@@ -227,20 +227,16 @@ String buildAskPromptContent(SceneContext context, String question) {
       ? '(sin diálogo previo)'
       : context.priorDialogueText;
 
-  final followingDialogue = context.followingDialogueText.trim();
-  final followingSection = followingDialogue.isEmpty
-      ? ''
-      : 'Diálogo inmediatamente posterior (${context.sceneAfterSeconds}s después del momento):\n$followingDialogue\n\n';
-
   final activeLineSection = activeSubtitle != null && activeSubtitle.isNotEmpty
       ? 'Subtítulo en ese instante: "$activeSubtitle"\n'
       : '';
 
+  // Deliberately omit any dialogue after the selected moment to avoid spoilers.
   return '''
 ${titleSection}Contexto previo (todos los subtítulos desde el inicio hasta el momento seleccionado):
 $priorDialogue
 
-${followingSection}Momento seleccionado: $timestamp
+Momento seleccionado: $timestamp
 ${activeLineSection}Personajes detectados automáticamente (lista incompleta, puede haber más): ${characters.isEmpty ? 'ninguno' : characters}
 
 Pregunta: $question
