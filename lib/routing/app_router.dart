@@ -3,7 +3,6 @@ import 'package:storypilot/domain/models/media_type.dart';
 import 'package:storypilot/ui/auth/widgets/login_screen.dart';
 import 'package:storypilot/ui/scene/widgets/scene_screen.dart';
 import 'package:storypilot/ui/search/widgets/search_screen.dart';
-import 'package:storypilot/ui/subtitles/widgets/subtitles_screen.dart';
 import 'package:storypilot/ui/title_detail/widgets/title_detail_screen.dart';
 
 GoRouter createAppRouter() {
@@ -29,17 +28,6 @@ GoRouter createAppRouter() {
           );
         },
         routes: [
-          GoRoute(
-            path: 'subtitles',
-            builder: (context, state) {
-              final id = int.parse(state.pathParameters['id']!);
-              final typeName = state.uri.queryParameters['type'] ?? 'movie';
-              return SubtitlesScreen(
-                id: id,
-                mediaType: MediaType.fromTmdb(typeName),
-              );
-            },
-          ),
           GoRoute(
             path: 'scene',
             builder: (context, state) {

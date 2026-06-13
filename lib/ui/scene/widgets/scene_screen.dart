@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:go_router/go_router.dart';
 import 'package:storypilot/config/di.dart';
 import 'package:storypilot/data/services/title_session_holder.dart';
 import 'package:storypilot/domain/models/scene_context.dart';
@@ -94,23 +93,6 @@ class _SceneViewState extends State<_SceneView> {
         appBar: AppBar(title: const Text('Escena actual')),
         body: BlocBuilder<SceneBloc, SceneState>(
           builder: (context, state) {
-            if (state is SceneMissingData) {
-              return Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text('Descarga subtítulos primero'),
-                    const SizedBox(height: 12),
-                    FilledButton(
-                      onPressed: () =>
-                          context.go('/title/${widget.id}/subtitles'),
-                      child: const Text('Ir a subtítulos'),
-                    ),
-                  ],
-                ),
-              );
-            }
-
             if (state is SceneLoaded) {
               final lastLine = getIt<TitleSessionHolder>()
                   .subtitleDocument
@@ -201,10 +183,10 @@ class _SceneContextPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return switch (state) {
-      SceneLoading() => const Center(child: LinearProgressIndicator()),
+      SceneInitial() || SceneLoading() =>
+        const Center(child: LinearProgressIndicator()),
       SceneFailure(:final failure) => Center(child: Text(failure.message)),
       SceneLoaded(:final context) => _SceneLoadedContent(sceneContext: context),
-      _ => const SizedBox.shrink(),
     };
   }
 }

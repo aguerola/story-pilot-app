@@ -23,7 +23,6 @@ import 'package:storypilot/ui/auth/bloc/auth_bloc.dart';
 import 'package:storypilot/ui/auth/bloc/auth_event.dart';
 import 'package:storypilot/ui/scene/bloc/scene_bloc.dart';
 import 'package:storypilot/ui/search/bloc/search_bloc.dart';
-import 'package:storypilot/ui/subtitles/bloc/subtitle_bloc.dart';
 import 'package:storypilot/ui/title_detail/bloc/title_detail_bloc.dart';
 
 final getIt = GetIt.instance;
@@ -81,13 +80,6 @@ Future<void> configureDependencies() async {
     ..registerFactory(
       () => TitleDetailBloc(
         getIt<TitleRepository>(),
-        getIt<TitleSessionHolder>(),
-      ),
-    )
-    ..registerFactory(
-      () => SubtitleBloc(
-        getIt<SubtitleRepository>(),
-        getIt<SettingsService>(),
         getIt<TitleSessionHolder>(),
       ),
     )

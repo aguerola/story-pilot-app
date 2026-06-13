@@ -4,6 +4,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:storypilot/data/repositories/scene_repository.dart';
 import 'package:storypilot/data/repositories/subtitle_repository.dart';
 import 'package:storypilot/data/services/title_session_holder.dart';
+import 'package:storypilot/domain/failure.dart';
 import 'package:storypilot/domain/models/cast_member.dart';
 import 'package:storypilot/domain/models/match_confidence.dart';
 import 'package:storypilot/domain/models/media_type.dart';
@@ -102,12 +103,54 @@ void main() {
   );
 
   blocTest<SceneBloc, SceneState>(
-    'emits missing data without subtitles',
+    'auto-downloads subtitles and emits loaded',
     build: () {
       session.subtitleDocument = null;
+      when(() => subtitleRepository.getCachedForTitle(any()))
+          .thenAnswer((_) async => null);
+      when(
+        () => subtitleRepository.ensureSubtitleForTitle(
+          tmdbId: 1,
+          mediaType: MediaType.movie,
+        ),
+      ).thenAnswer((_) async => Success(document));
+      when(
+        () => repository.getContext(
+          subtitles: document,
+          cast: const [],
+          timestampMs: 0,
+          titleLabel: 'Matrix',
+        ),
+      ).thenAnswer((_) async => Success(context));
       return SceneBloc(repository, subtitleRepository, session);
     },
     act: (bloc) => bloc.add(const SceneStarted(tmdbId: 1)),
-    expect: () => [const SceneMissingData()],
+    expect: () => [
+      const SceneLoading(),
+      isA<SceneLoaded>(),
+    ],
+  );
+
+  blocTest<SceneBloc, SceneState>(
+    'emits failure when auto-download fails',
+    build: () {
+      session.subtitleDocument = null;
+      when(() => subtitleRepository.getCachedForTitle(any()))
+          .thenAnswer((_) async => null);
+      when(
+        () => subtitleRepository.ensureSubtitleForTitle(
+          tmdbId: 1,
+          mediaType: MediaType.movie,
+        ),
+      ).thenAnswer(
+        (_) async => const Error(NotFoundFailure('No English SRT subtitles found')),
+      );
+      return SceneBloc(repository, subtitleRepository, session);
+    },
+    act: (bloc) => bloc.add(const SceneStarted(tmdbId: 1)),
+    expect: () => [
+      const SceneLoading(),
+      isA<SceneFailure>(),
+    ],
   );
 }

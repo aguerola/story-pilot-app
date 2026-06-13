@@ -13,11 +13,6 @@ class DetailActions extends StatelessWidget {
       runSpacing: 8,
       children: [
         FilledButton.icon(
-          onPressed: () => context.go('/title/$titleId/subtitles'),
-          icon: const Icon(Icons.subtitles),
-          label: const Text('Subtitles'),
-        ),
-        OutlinedButton.icon(
           onPressed: () => context.go('/title/$titleId/scene'),
           icon: const Icon(Icons.theaters),
           label: const Text('Scene'),

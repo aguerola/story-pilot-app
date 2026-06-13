@@ -34,7 +34,3 @@ final class SceneFailure extends SceneState {
   @override
   List<Object?> get props => [failure];
 }
-
-final class SceneMissingData extends SceneState {
-  const SceneMissingData();
-}

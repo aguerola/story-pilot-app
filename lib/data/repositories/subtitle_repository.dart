@@ -1,6 +1,7 @@
 import 'package:storypilot/data/services/local_cache_service.dart';
 import 'package:storypilot/data/services/open_subtitles_service.dart';
 import 'package:storypilot/data/services/subtitle_parser_service.dart';
+import 'package:storypilot/domain/failure.dart';
 import 'package:storypilot/domain/models/media_type.dart';
 import 'package:storypilot/domain/models/subtitle_document.dart';
 import 'package:storypilot/domain/models/subtitle_line.dart';
@@ -13,6 +14,8 @@ class SubtitleRepository {
     this._parser,
     this._cache,
   );
+
+  static const subtitleLanguage = 'en';
 
   final OpenSubtitlesService _openSubtitles;
   final SubtitleParserService _parser;
@@ -66,5 +69,41 @@ class SubtitleRepository {
 
   Future<SubtitleDocument?> getCachedForTitle(int tmdbId) {
     return _cache.getLatestSubtitleForTitle(tmdbId);
+  }
+
+  Future<Result<SubtitleDocument>> ensureSubtitleForTitle({
+    required int tmdbId,
+    required MediaType mediaType,
+  }) async {
+    final cached = await getCachedForTitle(tmdbId);
+    if (cached != null && cached.language == subtitleLanguage) {
+      return Success(cached);
+    }
+
+    final tracksResult = await listTracks(
+      tmdbId: tmdbId,
+      mediaType: mediaType,
+      language: subtitleLanguage,
+    );
+    if (tracksResult is Error<List<SubtitleTrack>>) {
+      return Error(tracksResult.failure);
+    }
+
+    final srtTracks = (tracksResult as Success<List<SubtitleTrack>>)
+        .data
+        .where((track) => track.format.toLowerCase() == 'srt')
+        .toList();
+    if (srtTracks.isEmpty) {
+      return const Error(
+        NotFoundFailure('No English SRT subtitles found'),
+      );
+    }
+
+    final bestTrack = srtTracks.reduce(
+      (a, b) =>
+          (a.downloadCount ?? 0) >= (b.downloadCount ?? 0) ? a : b,
+    );
+
+    return downloadAndParse(tmdbId: tmdbId, track: bestTrack);
   }
 }
