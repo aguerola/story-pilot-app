@@ -10,9 +10,12 @@ import 'package:storypilot/domain/models/title_summary.dart';
 import 'package:storypilot/domain/result.dart';
 
 class TmdbService {
-  TmdbService(this._dio);
+  TmdbService(this._dio, {String? apiKey}) : _apiKey = apiKey ?? Env.tmdbApiKey;
 
   final Dio _dio;
+  final String _apiKey;
+
+  bool get _hasTmdbKey => _apiKey.isNotEmpty;
 
   static const _crewJobs = {
     'Director',
@@ -23,14 +26,14 @@ class TmdbService {
   };
 
   Future<Result<List<TitleSummary>>> search(String query) async {
-    if (!Env.hasTmdbKey) {
+    if (!_hasTmdbKey) {
       return const Error(NetworkFailure('TMDB_API_KEY not configured'));
     }
     try {
       final response = await _dio.get<Map<String, dynamic>>(
         Env.wrapUrl('${Env.tmdbBaseUrl}/search/multi'),
         queryParameters: {
-          'api_key': Env.tmdbApiKey,
+          'api_key': _apiKey,
           'query': query,
           'include_adult': false,
         },
@@ -50,7 +53,7 @@ class TmdbService {
   }
 
   Future<Result<TitleDetail>> fetchDetail(int id, MediaType type) async {
-    if (!Env.hasTmdbKey) {
+    if (!_hasTmdbKey) {
       return const Error(NetworkFailure('TMDB_API_KEY not configured'));
     }
     try {
@@ -61,7 +64,7 @@ class TmdbService {
       final detailResponse = await _dio.get<Map<String, dynamic>>(
         Env.wrapUrl('${Env.tmdbBaseUrl}/$path/$id'),
         queryParameters: {
-          'api_key': Env.tmdbApiKey,
+          'api_key': _apiKey,
           'append_to_response': appendToResponse,
         },
       );

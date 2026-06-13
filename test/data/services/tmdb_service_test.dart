@@ -16,7 +16,7 @@ void main() {
 
   setUp(() {
     dio = MockDio();
-    service = TmdbService(dio);
+    service = TmdbService(dio, apiKey: 'test');
   });
 
   group('TitleDetail serialization', () {
