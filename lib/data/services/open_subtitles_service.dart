@@ -81,7 +81,9 @@ class OpenSubtitlesService {
       if (link == null) {
         return const Error(NotFoundFailure('Download link not available'));
       }
-      final fileResponse = await _dio.get<String>(Env.wrapUrl(link));
+      final fileResponse = await _dio.get<String>(
+        Env.wrapCrossOriginFileUrl(link),
+      );
       return Success(fileResponse.data ?? '');
     } on DioException catch (e) {
       return Error(_mapDioError(e));
