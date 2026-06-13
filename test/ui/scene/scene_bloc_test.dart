@@ -9,10 +9,12 @@ import 'package:storypilot/domain/models/cast_member.dart';
 import 'package:storypilot/domain/models/match_confidence.dart';
 import 'package:storypilot/domain/models/media_type.dart';
 import 'package:storypilot/domain/models/scene_context.dart';
+import 'package:storypilot/domain/models/season.dart';
 import 'package:storypilot/domain/models/subtitle_document.dart';
 import 'package:storypilot/domain/models/subtitle_line.dart';
 import 'package:storypilot/domain/models/title_detail.dart';
 import 'package:storypilot/domain/models/title_summary.dart';
+import 'package:storypilot/domain/models/tv_episode_selection.dart';
 import 'package:storypilot/domain/result.dart';
 import 'package:storypilot/ui/scene/bloc/scene_bloc.dart';
 import 'package:storypilot/ui/scene/bloc/scene_event.dart';
@@ -59,11 +61,20 @@ void main() {
     ],
   );
 
+  setUpAll(() {
+    registerFallbackValue(const TvEpisodeSelection(
+      seasonNumber: 1,
+      episodeNumber: 1,
+    ));
+  });
+
   setUp(() {
     repository = MockSceneRepository();
     subtitleRepository = MockSubtitleRepository();
-    when(() => subtitleRepository.getCachedForTitle(any()))
-        .thenAnswer((_) async => null);
+    when(() => subtitleRepository.getCachedForTitle(
+          any(),
+          episode: any(named: 'episode'),
+        )).thenAnswer((_) async => null);
     session = TitleSessionHolder()
       ..setTitleDetail(
         TitleDetail(
@@ -106,12 +117,15 @@ void main() {
     'auto-downloads subtitles then awaits a timestamp instead of loading 0',
     build: () {
       session.subtitleDocument = null;
-      when(() => subtitleRepository.getCachedForTitle(any()))
-          .thenAnswer((_) async => null);
+      when(() => subtitleRepository.getCachedForTitle(
+            any(),
+            episode: any(named: 'episode'),
+          )).thenAnswer((_) async => null);
       when(
         () => subtitleRepository.ensureSubtitleForTitle(
           tmdbId: 1,
           mediaType: MediaType.movie,
+          episode: any(named: 'episode'),
         ),
       ).thenAnswer((_) async => Success(document));
       return SceneBloc(repository, subtitleRepository, session);
@@ -127,12 +141,15 @@ void main() {
     'emits failure when auto-download fails',
     build: () {
       session.subtitleDocument = null;
-      when(() => subtitleRepository.getCachedForTitle(any()))
-          .thenAnswer((_) async => null);
+      when(() => subtitleRepository.getCachedForTitle(
+            any(),
+            episode: any(named: 'episode'),
+          )).thenAnswer((_) async => null);
       when(
         () => subtitleRepository.ensureSubtitleForTitle(
           tmdbId: 1,
           mediaType: MediaType.movie,
+          episode: any(named: 'episode'),
         ),
       ).thenAnswer(
         (_) async => const Error(NotFoundFailure('No English SRT subtitles found')),
@@ -143,6 +160,83 @@ void main() {
     expect: () => [
       const SceneLoading(),
       isA<SceneFailure>(),
+    ],
+  );
+
+  blocTest<SceneBloc, SceneState>(
+    'awaits episode selection for TV without season and episode',
+    build: () {
+      session
+        ..setTitleDetail(
+          TitleDetail(
+            summary: const TitleSummary(
+              id: 10,
+              mediaType: MediaType.tv,
+              title: 'Breaking Bad',
+            ),
+            overview: '',
+            cast: const [],
+            seasons: const [
+              Season(
+                seasonNumber: 1,
+                name: 'Season 1',
+                episodeCount: 7,
+              ),
+            ],
+          ),
+        )
+        ..subtitleDocument = null;
+      return SceneBloc(repository, subtitleRepository, session);
+    },
+    act: (bloc) => bloc.add(const SceneStarted(tmdbId: 10)),
+    expect: () => [const SceneAwaitingEpisode()],
+  );
+
+  blocTest<SceneBloc, SceneState>(
+    'loads subtitles for selected TV episode',
+    build: () {
+      session
+        ..setTitleDetail(
+          TitleDetail(
+            summary: const TitleSummary(
+              id: 10,
+              mediaType: MediaType.tv,
+              title: 'Breaking Bad',
+            ),
+            overview: '',
+            cast: const [],
+            seasons: const [
+              Season(
+                seasonNumber: 1,
+                name: 'Season 1',
+                episodeCount: 7,
+              ),
+            ],
+          ),
+        )
+        ..subtitleDocument = null;
+      when(
+        () => subtitleRepository.ensureSubtitleForTitle(
+          tmdbId: 10,
+          mediaType: MediaType.tv,
+          episode: const TvEpisodeSelection(
+            seasonNumber: 1,
+            episodeNumber: 3,
+          ),
+        ),
+      ).thenAnswer((_) async => Success(document));
+      return SceneBloc(repository, subtitleRepository, session);
+    },
+    act: (bloc) => bloc.add(
+      const SceneStarted(
+        tmdbId: 10,
+        seasonNumber: 1,
+        episodeNumber: 3,
+      ),
+    ),
+    expect: () => [
+      const SceneLoading(),
+      const SceneAwaitingTimestamp(),
     ],
   );
 }

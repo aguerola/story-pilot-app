@@ -9,6 +9,7 @@ import 'package:storypilot/domain/models/media_type.dart';
 import 'package:storypilot/domain/models/subtitle_document.dart';
 import 'package:storypilot/domain/models/subtitle_line.dart';
 import 'package:storypilot/domain/models/subtitle_track.dart';
+import 'package:storypilot/domain/models/tv_episode_selection.dart';
 import 'package:storypilot/domain/result.dart';
 
 class MockOpenSubtitlesService extends Mock implements OpenSubtitlesService {}
@@ -37,6 +38,10 @@ void main() {
 
   setUpAll(() {
     registerFallbackValue(cachedDocument);
+    registerFallbackValue(const TvEpisodeSelection(
+      seasonNumber: 1,
+      episodeNumber: 1,
+    ));
   });
 
   setUp(() {
@@ -62,6 +67,8 @@ void main() {
         tmdbId: tmdbId,
         mediaType: mediaType,
         language: 'en',
+        seasonNumber: any(named: 'seasonNumber'),
+        episodeNumber: any(named: 'episodeNumber'),
       ),
     );
   });
@@ -116,6 +123,8 @@ Hello
         tmdbId: tmdbId,
         mediaType: mediaType,
         language: 'en',
+        seasonNumber: any(named: 'seasonNumber'),
+        episodeNumber: any(named: 'episodeNumber'),
       ),
     ).thenAnswer((_) async => const Success(tracks));
     when(() => cache.getSubtitle(tmdbId, 'en', 'high'))
@@ -148,6 +157,8 @@ Hello
         tmdbId: tmdbId,
         mediaType: mediaType,
         language: 'en',
+        seasonNumber: any(named: 'seasonNumber'),
+        episodeNumber: any(named: 'episodeNumber'),
       ),
     ).thenAnswer(
       (_) async => const Success([

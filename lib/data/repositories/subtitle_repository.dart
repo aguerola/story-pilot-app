@@ -6,6 +6,7 @@ import 'package:storypilot/domain/models/media_type.dart';
 import 'package:storypilot/domain/models/subtitle_document.dart';
 import 'package:storypilot/domain/models/subtitle_line.dart';
 import 'package:storypilot/domain/models/subtitle_track.dart';
+import 'package:storypilot/domain/models/tv_episode_selection.dart';
 import 'package:storypilot/domain/result.dart';
 
 class SubtitleRepository {
@@ -25,17 +26,21 @@ class SubtitleRepository {
     required int tmdbId,
     required MediaType mediaType,
     required String language,
+    TvEpisodeSelection? episode,
   }) {
     return _openSubtitles.listTracks(
       tmdbId: tmdbId,
       mediaType: mediaType,
       language: language,
+      seasonNumber: episode?.seasonNumber,
+      episodeNumber: episode?.episodeNumber,
     );
   }
 
   Future<Result<SubtitleDocument>> downloadAndParse({
     required int tmdbId,
     required SubtitleTrack track,
+    TvEpisodeSelection? episode,
   }) async {
     final cached = await _cache.getSubtitle(
       tmdbId,
@@ -63,19 +68,31 @@ class SubtitleRepository {
       lines: (parsed as Success<List<SubtitleLine>>).data,
     );
 
-    await _cache.saveSubtitle(document);
+    await _cache.saveSubtitle(
+      document,
+      seasonNumber: episode?.seasonNumber,
+      episodeNumber: episode?.episodeNumber,
+    );
     return Success(document);
   }
 
-  Future<SubtitleDocument?> getCachedForTitle(int tmdbId) {
-    return _cache.getLatestSubtitleForTitle(tmdbId);
+  Future<SubtitleDocument?> getCachedForTitle(
+    int tmdbId, {
+    TvEpisodeSelection? episode,
+  }) {
+    return _cache.getLatestSubtitleForTitle(
+      tmdbId,
+      seasonNumber: episode?.seasonNumber,
+      episodeNumber: episode?.episodeNumber,
+    );
   }
 
   Future<Result<SubtitleDocument>> ensureSubtitleForTitle({
     required int tmdbId,
     required MediaType mediaType,
+    TvEpisodeSelection? episode,
   }) async {
-    final cached = await getCachedForTitle(tmdbId);
+    final cached = await getCachedForTitle(tmdbId, episode: episode);
     if (cached != null && cached.language == subtitleLanguage) {
       return Success(cached);
     }
@@ -84,6 +101,7 @@ class SubtitleRepository {
       tmdbId: tmdbId,
       mediaType: mediaType,
       language: subtitleLanguage,
+      episode: episode,
     );
     if (tracksResult is Error<List<SubtitleTrack>>) {
       return Error(tracksResult.failure);
@@ -104,6 +122,10 @@ class SubtitleRepository {
           (a.downloadCount ?? 0) >= (b.downloadCount ?? 0) ? a : b,
     );
 
-    return downloadAndParse(tmdbId: tmdbId, track: bestTrack);
+    return downloadAndParse(
+      tmdbId: tmdbId,
+      track: bestTrack,
+      episode: episode,
+    );
   }
 }

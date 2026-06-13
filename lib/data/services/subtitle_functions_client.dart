@@ -5,6 +5,9 @@ abstract class SubtitleFunctionsClient {
     required int tmdbId,
     required String type,
     required String languages,
+    int? parentTmdbId,
+    int? seasonNumber,
+    int? episodeNumber,
   });
 
   Future<String> downloadSubtitleContent(String fileId);
@@ -23,12 +26,19 @@ class FirebaseSubtitleFunctionsClient implements SubtitleFunctionsClient {
     required int tmdbId,
     required String type,
     required String languages,
+    int? parentTmdbId,
+    int? seasonNumber,
+    int? episodeNumber,
   }) async {
-    final result = await _functions.httpsCallable('listSubtitles').call({
+    final payload = <String, dynamic>{
       'tmdbId': tmdbId,
       'type': type,
       'languages': languages,
-    });
+    };
+    if (parentTmdbId != null) payload['parentTmdbId'] = parentTmdbId;
+    if (seasonNumber != null) payload['seasonNumber'] = seasonNumber;
+    if (episodeNumber != null) payload['episodeNumber'] = episodeNumber;
+    final result = await _functions.httpsCallable('listSubtitles').call(payload);
     return Map<String, dynamic>.from(result.data as Map);
   }
 

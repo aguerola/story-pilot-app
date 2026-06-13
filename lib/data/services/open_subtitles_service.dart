@@ -23,6 +23,8 @@ class OpenSubtitlesService {
     required int tmdbId,
     required MediaType mediaType,
     required String language,
+    int? seasonNumber,
+    int? episodeNumber,
   }) async {
     if (!_isConfigured) {
       return const Error(
@@ -31,21 +33,33 @@ class OpenSubtitlesService {
     }
     try {
       final type = mediaType == MediaType.movie ? 'movie' : 'episode';
+      final isTvEpisode = mediaType == MediaType.tv &&
+          seasonNumber != null &&
+          episodeNumber != null;
       final Map<String, dynamic> payload;
       if (_useStoryPilotServer) {
         payload = await _functionsClient!.listSubtitles(
           tmdbId: tmdbId,
           type: type,
           languages: language,
+          parentTmdbId: isTvEpisode ? tmdbId : null,
+          seasonNumber: seasonNumber,
+          episodeNumber: episodeNumber,
         );
       } else {
+        final queryParameters = <String, dynamic>{
+          'languages': language,
+          'type': type,
+          if (isTvEpisode) ...{
+            'parent_tmdb_id': tmdbId,
+            'season_number': seasonNumber,
+            'episode_number': episodeNumber,
+          } else
+            'tmdb_id': tmdbId,
+        };
         final response = await _dio.get<Map<String, dynamic>>(
           Env.wrapUrl('${Env.openSubtitlesBaseUrl}/subtitles'),
-          queryParameters: {
-            'tmdb_id': tmdbId,
-            'type': type,
-            'languages': language,
-          },
+          queryParameters: queryParameters,
           options: Options(headers: _directHeaders),
         );
         payload = response.data ?? {};

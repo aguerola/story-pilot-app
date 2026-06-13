@@ -13,7 +13,11 @@ import 'package:storypilot/ui/scene/bloc/scene_bloc.dart';
 import 'package:storypilot/ui/scene/bloc/scene_brief_cubit.dart';
 import 'package:storypilot/ui/scene/bloc/scene_event.dart';
 import 'package:storypilot/ui/scene/bloc/scene_state.dart';
+import 'package:storypilot/domain/models/media_type.dart';
+import 'package:storypilot/domain/models/tv_episode_selection.dart';
+import 'package:storypilot/domain/models/season.dart';
 import 'package:storypilot/ui/scene/widgets/scene_ask_panel.dart';
+import 'package:storypilot/ui/scene/widgets/season_episode_selector.dart';
 import 'package:storypilot/utils/timestamp_utils.dart';
 
 const _wideLayoutBreakpoint = 840.0;
@@ -28,7 +32,7 @@ class SceneScreen extends StatelessWidget {
     return MultiBlocProvider(
       providers: [
         BlocProvider(
-          create: (_) => getIt<SceneBloc>()..add(SceneStarted(tmdbId: id)),
+          create: (_) => getIt<SceneBloc>(),
         ),
         BlocProvider(create: (_) => getIt<AskBloc>()),
         BlocProvider(create: (_) => getIt<SceneBriefCubit>()),
@@ -51,6 +55,64 @@ class _SceneViewState extends State<_SceneView> {
   final _timeController = TextEditingController(text: '00:00:00');
   double _sliderValue = 0;
   double _maxMs = 7200000;
+  late final bool _isTv;
+  List<Season> _seasons = const [];
+  int? _selectedSeason;
+  int? _selectedEpisode;
+  bool _started = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final detail = getIt<TitleSessionHolder>().titleDetail;
+    _isTv = detail?.summary.mediaType == MediaType.tv;
+    _seasons = detail?.seasons ?? const [];
+    final sessionEpisode = getIt<TitleSessionHolder>().selectedEpisode;
+    if (_isTv && _seasons.isNotEmpty) {
+      _selectedSeason =
+          sessionEpisode?.seasonNumber ?? _seasons.first.seasonNumber;
+      _selectedEpisode = sessionEpisode?.episodeNumber ?? 1;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) => _startScene());
+  }
+
+  void _startScene() {
+    if (_started) return;
+    _started = true;
+    if (_isTv) {
+      if (_selectedSeason == null || _selectedEpisode == null) return;
+      context.read<SceneBloc>().add(
+            SceneStarted(
+              tmdbId: widget.id,
+              seasonNumber: _selectedSeason,
+              episodeNumber: _selectedEpisode,
+            ),
+          );
+      return;
+    }
+    context.read<SceneBloc>().add(SceneStarted(tmdbId: widget.id));
+  }
+
+  void _onEpisodeSelectionChanged(int seasonNumber, int episodeNumber) {
+    setState(() {
+      _selectedSeason = seasonNumber;
+      _selectedEpisode = episodeNumber;
+      _sliderValue = 0;
+      _timeController.text = '00:00:00';
+    });
+    getIt<TitleSessionHolder>().setSelectedEpisode(
+      TvEpisodeSelection(
+        seasonNumber: seasonNumber,
+        episodeNumber: episodeNumber,
+      ),
+    );
+    context.read<SceneBloc>().add(
+          EpisodeSelected(
+            seasonNumber: seasonNumber,
+            episodeNumber: episodeNumber,
+          ),
+        );
+  }
 
   @override
   void dispose() {
@@ -114,12 +176,25 @@ class _SceneViewState extends State<_SceneView> {
             }
 
             final askEnabled = state is SceneLoaded;
+            final showEpisodeSelector = _isTv &&
+                _seasons.isNotEmpty &&
+                _selectedSeason != null &&
+                _selectedEpisode != null;
 
             return Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  if (showEpisodeSelector) ...[
+                    SeasonEpisodeSelector(
+                      seasons: _seasons,
+                      selectedSeason: _selectedSeason!,
+                      selectedEpisode: _selectedEpisode!,
+                      onChanged: _onEpisodeSelectionChanged,
+                    ),
+                    const SizedBox(height: 12),
+                  ],
                   Row(
                     children: [
                       Expanded(
@@ -197,10 +272,22 @@ class _SceneContextPanel extends StatelessWidget {
     return switch (state) {
       SceneInitial() || SceneLoading() =>
         const Center(child: LinearProgressIndicator()),
+      SceneAwaitingEpisode() => const _AwaitingEpisodePrompt(),
       SceneAwaitingTimestamp() => const _AwaitingTimestampPrompt(),
       SceneFailure(:final failure) => Center(child: Text(failure.message)),
       SceneLoaded(:final context) => _SceneLoadedContent(sceneContext: context),
     };
+  }
+}
+
+class _AwaitingEpisodePrompt extends StatelessWidget {
+  const _AwaitingEpisodePrompt();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: Text('Selecciona temporada y capítulo para continuar'),
+    );
   }
 }
 

@@ -23,6 +23,11 @@ final class SceneAwaitingTimestamp extends SceneState {
   const SceneAwaitingTimestamp();
 }
 
+/// TV show without a selected season/episode yet.
+final class SceneAwaitingEpisode extends SceneState {
+  const SceneAwaitingEpisode();
+}
+
 final class SceneLoaded extends SceneState {
   const SceneLoaded(this.context);
 

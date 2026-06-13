@@ -25,7 +25,16 @@ class LocalCacheService {
 
   final SharedPreferences _prefs;
 
-  static String subtitleLastKey(int tmdbId) => 'subtitle_last_$tmdbId';
+  static String subtitleLastKey(
+    int tmdbId, {
+    int? seasonNumber,
+    int? episodeNumber,
+  }) {
+    if (seasonNumber != null && episodeNumber != null) {
+      return 'subtitle_last_${tmdbId}_s${seasonNumber}_e$episodeNumber';
+    }
+    return 'subtitle_last_$tmdbId';
+  }
 
   Future<Directory> _cacheDir() async {
     if (kIsWeb) {
@@ -78,8 +87,18 @@ class LocalCacheService {
     }
   }
 
-  Future<SubtitleDocument?> getLatestSubtitleForTitle(int tmdbId) async {
-    final meta = _prefs.getString(subtitleLastKey(tmdbId));
+  Future<SubtitleDocument?> getLatestSubtitleForTitle(
+    int tmdbId, {
+    int? seasonNumber,
+    int? episodeNumber,
+  }) async {
+    final meta = _prefs.getString(
+      subtitleLastKey(
+        tmdbId,
+        seasonNumber: seasonNumber,
+        episodeNumber: episodeNumber,
+      ),
+    );
     if (meta == null) return null;
     final sep = meta.indexOf('|');
     if (sep <= 0) return null;
@@ -119,9 +138,18 @@ class LocalCacheService {
     }
   }
 
-  Future<Result<void>> saveSubtitle(SubtitleDocument document) async {
+  Future<Result<void>> saveSubtitle(
+    SubtitleDocument document, {
+    int? seasonNumber,
+    int? episodeNumber,
+  }) async {
     final encoded = jsonEncode(document.toJson());
     final meta = '${document.language}|${document.fileId}';
+    final lastKey = subtitleLastKey(
+      document.titleId,
+      seasonNumber: seasonNumber,
+      episodeNumber: episodeNumber,
+    );
 
     if (kIsWeb) {
       try {
@@ -133,7 +161,7 @@ class LocalCacheService {
           ),
           encoded,
         );
-        await _prefs.setString(subtitleLastKey(document.titleId), meta);
+        await _prefs.setString(lastKey, meta);
         return const Success(null);
       } catch (e) {
         return Error(CacheFailure(e.toString()));
@@ -144,7 +172,7 @@ class LocalCacheService {
         '${(await _cacheDir()).path}/${_subtitleKey(document.titleId, document.language, document.fileId)}',
       );
       await file.writeAsString(encoded);
-      await _prefs.setString(subtitleLastKey(document.titleId), meta);
+      await _prefs.setString(lastKey, meta);
       return const Success(null);
     } catch (e) {
       return Error(CacheFailure(e.toString()));
