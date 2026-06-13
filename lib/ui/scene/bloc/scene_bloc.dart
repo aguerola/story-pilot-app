@@ -11,13 +11,11 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> {
       : super(const SceneInitial()) {
     on<SceneStarted>(_onStarted);
     on<TimestampChanged>(_onTimestampChanged);
-    on<WindowSecondsChanged>(_onWindowChanged);
   }
 
   final SceneRepository _repository;
   final SubtitleRepository _subtitleRepository;
   final TitleSessionHolder _session;
-  var _windowSeconds = 30;
 
   Future<void> _onStarted(
     SceneStarted event,
@@ -43,17 +41,6 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> {
     await _loadContext(event.timestampMs, emit);
   }
 
-  Future<void> _onWindowChanged(
-    WindowSecondsChanged event,
-    Emitter<SceneState> emit,
-  ) async {
-    _windowSeconds = event.windowSeconds;
-    final current = state;
-    if (current is SceneLoaded) {
-      await _loadContext(current.context.timestampMs, emit);
-    }
-  }
-
   Future<void> _loadContext(int timestampMs, Emitter<SceneState> emit) async {
     final subtitles = _session.subtitleDocument;
     if (subtitles == null) {
@@ -65,7 +52,6 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> {
       subtitles: subtitles,
       cast: _session.cast,
       timestampMs: timestampMs,
-      windowSeconds: _windowSeconds,
     );
     switch (result) {
       case Success(:final data):

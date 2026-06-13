@@ -47,4 +47,53 @@ void main() {
     expect(context.characters, hasLength(2));
     expect(context.characters.first.confidence, MatchConfidence.high);
   });
+
+  test('ask dialogue includes subtitles from start through timestamp plus window',
+      () {
+    final document = SubtitleDocument(
+      titleId: 1,
+      language: 'es',
+      fileId: '1',
+      lines: const [
+        SubtitleLine(startMs: 0, endMs: 10000, text: 'Inicio'),
+        SubtitleLine(startMs: 50000, endMs: 55000, text: 'Mitad'),
+        SubtitleLine(startMs: 95000, endMs: 100000, text: 'Después'),
+      ],
+    );
+
+    final context = analyzer.buildContext(
+      subtitles: document,
+      cast: const [],
+      timestampMs: 60000,
+    );
+
+    expect(context.dialogueText, 'Inicio\nMitad');
+    expect(context.askDialogueText, 'Inicio\nMitad');
+    expect(context.priorDialogueText, isEmpty);
+    expect(context.askDialogueText, isNot(contains('Después')));
+  });
+
+  test('scene window spans two minutes before and thirty seconds after', () {
+    final document = SubtitleDocument(
+      titleId: 1,
+      language: 'es',
+      fileId: '1',
+      lines: const [
+        SubtitleLine(startMs: 0, endMs: 10000, text: 'Inicio'),
+        SubtitleLine(startMs: 30000, endMs: 35000, text: 'Antes'),
+        SubtitleLine(startMs: 50000, endMs: 55000, text: 'Mitad'),
+        SubtitleLine(startMs: 95000, endMs: 100000, text: 'Después'),
+      ],
+    );
+
+    final context = analyzer.buildContext(
+      subtitles: document,
+      cast: const [],
+      timestampMs: 60000,
+    );
+
+    expect(context.dialogueText, 'Inicio\nAntes\nMitad');
+    expect(context.sceneBeforeSeconds, 120);
+    expect(context.sceneAfterSeconds, 30);
+  });
 }

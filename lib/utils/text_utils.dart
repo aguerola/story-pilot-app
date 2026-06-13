@@ -11,17 +11,26 @@ String normalizeText(String input) {
       .replaceAll(RegExp(r'ñ'), 'n');
 }
 
-List<SubtitleLine> linesInWindow(
+List<SubtitleLine> linesInSceneWindow(
   List<SubtitleLine> lines,
-  int centerMs,
-  int windowSeconds,
-) {
-  final windowMs = windowSeconds * 1000;
-  final start = centerMs - windowMs;
-  final end = centerMs + windowMs;
+  int centerMs, {
+  int beforeSeconds = 120,
+  int afterSeconds = 30,
+}) {
+  final start = centerMs - beforeSeconds * 1000;
+  final end = centerMs + afterSeconds * 1000;
   return lines
       .where((line) => line.endMs >= start && line.startMs <= end)
       .toList();
+}
+
+List<SubtitleLine> linesFromStartThroughWindow(
+  List<SubtitleLine> lines,
+  int centerMs,
+  int afterSeconds,
+) {
+  final end = centerMs + afterSeconds * 1000;
+  return lines.where((line) => line.startMs <= end).toList();
 }
 
 String aggregateDialogue(List<SubtitleLine> lines) {

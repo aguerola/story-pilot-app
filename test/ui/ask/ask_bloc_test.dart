@@ -19,8 +19,11 @@ void main() {
 
   final context = SceneContext(
     timestampMs: 1000,
-    windowSeconds: 30,
+    sceneBeforeSeconds: 120,
+    sceneAfterSeconds: 30,
     dialogueText: 'Neo habla',
+    askDialogueText: 'Neo habla',
+    priorDialogueText: '',
     characters: [
       SceneCharacter(
         castMember: const CastMember(

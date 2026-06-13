@@ -147,7 +147,7 @@ class _SceneViewState extends State<_SceneView> {
                   ],
                   const SizedBox(height: 16),
                   Text(
-                    'Ventana ±${state.context.windowSeconds}s',
+                    'Escena: ${state.context.sceneWindowLabel}',
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                   const SizedBox(height: 8),

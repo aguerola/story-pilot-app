@@ -5,6 +5,7 @@ import 'package:storypilot/domain/failure.dart';
 import 'package:storypilot/domain/models/scene_answer.dart';
 import 'package:storypilot/domain/models/scene_context.dart';
 import 'package:storypilot/domain/result.dart';
+import 'package:storypilot/utils/timestamp_utils.dart';
 
 class FirebaseAiAskService implements AskService {
   FirebaseAiAskService({GenerativeModel? model, LocalStubAskService? fallback})
@@ -21,13 +22,16 @@ class FirebaseAiAskService implements AskService {
   final LocalStubAskService _fallback;
 
   static const _systemInstruction = '''
-Eres un asistente que explica escenas de películas y series.
+Eres un asistente que explica escenas concretas de películas y series en un momento exacto del vídeo.
+
 Reglas estrictas:
-- Usa SOLO el diálogo y los personajes proporcionados.
-- NO inventes eventos posteriores al timestamp.
-- NO des spoilers de tramas futuras.
+- Responde SOLO sobre la escena seleccionada en el momento indicado, no sobre la película en general.
+- Basa tu respuesta principalmente en el diálogo de la escena seleccionada (2 minutos antes hasta 30 segundos después del momento indicado).
+- Usa el contexto previo únicamente para entender referencias; no lo resumas ni describas la trama completa.
+- Usa SOLO la información proporcionada; no inventes tramas.
+- NO describas eventos posteriores al momento seleccionado.
 - Responde en el idioma de la pregunta del usuario.
-- Si no hay información suficiente, dilo claramente.
+- Si la escena seleccionada no tiene información suficiente, dilo claramente.
 ''';
 
   @override
@@ -36,19 +40,8 @@ Reglas estrictas:
     required String question,
   }) async {
     try {
-      final characters = context.characters
-          .map((c) => c.castMember.characterName)
-          .join(', ');
-
       final response = await _model.generateContent([
-        Content.text('''
-Diálogo de la escena:
-${context.dialogueText}
-
-Personajes detectados: ${characters.isEmpty ? 'ninguno' : characters}
-
-Pregunta: $question
-'''),
+        Content.text(buildAskPromptContent(context, question)),
       ]);
 
       final text = response.text?.trim();
@@ -88,15 +81,36 @@ Pregunta: $question
 }
 
 String buildAskPromptContent(SceneContext context, String question) {
+  final timestamp = formatMsToTimestamp(context.timestampMs);
+  final activeSubtitle = context.activeLine?.text.trim();
   final characters = context.characters
       .map((c) => c.castMember.characterName)
       .join(', ');
-  return '''
-Diálogo de la escena:
-${context.dialogueText}
 
-Personajes detectados: ${characters.isEmpty ? 'ninguno' : characters}
+  final activeLineSection = activeSubtitle != null && activeSubtitle.isNotEmpty
+      ? 'Subtítulo en ese instante: "$activeSubtitle"\n\n'
+      : '';
+
+  final sceneDialogue = context.dialogueText.trim().isEmpty
+      ? '(sin diálogo en esta ventana)'
+      : context.dialogueText;
+
+  final priorDialogue = context.priorDialogueText.trim().isEmpty
+      ? '(sin diálogo previo)'
+      : context.priorDialogueText;
+
+  return '''
+Momento seleccionado: $timestamp
+${activeLineSection}Escena seleccionada (diálogo ${context.sceneWindowLabel} del momento):
+$sceneDialogue
+
+Contexto previo (diálogo desde el inicio hasta el momento seleccionado; solo para referencias, NO para resumir):
+$priorDialogue
+
+Personajes detectados en la escena: ${characters.isEmpty ? 'ninguno' : characters}
 
 Pregunta: $question
+
+Responde centrándote en lo que ocurre en la ESCENA SELECCIONADA en el momento indicado.
 ''';
 }

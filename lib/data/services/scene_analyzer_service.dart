@@ -6,18 +6,33 @@ import 'package:storypilot/domain/models/subtitle_line.dart';
 import 'package:storypilot/utils/text_utils.dart';
 
 class SceneAnalyzerService {
+  static const sceneBeforeSeconds = 120;
+  static const sceneAfterSeconds = 30;
+
   SceneContext buildContext({
     required SubtitleDocument subtitles,
     required List<CastMember> cast,
     required int timestampMs,
-    int windowSeconds = 30,
+    int sceneBeforeSeconds = SceneAnalyzerService.sceneBeforeSeconds,
+    int sceneAfterSeconds = SceneAnalyzerService.sceneAfterSeconds,
   }) {
-    final windowLines = linesInWindow(
+    final windowLines = linesInSceneWindow(
       subtitles.lines,
       timestampMs,
-      windowSeconds,
+      beforeSeconds: sceneBeforeSeconds,
+      afterSeconds: sceneAfterSeconds,
+    );
+    final askLines = linesFromStartThroughWindow(
+      subtitles.lines,
+      timestampMs,
+      sceneAfterSeconds,
     );
     final dialogueText = aggregateDialogue(windowLines);
+    final askDialogueText = aggregateDialogue(askLines);
+    final priorLines = askLines
+        .where((line) => !windowLines.contains(line))
+        .toList();
+    final priorDialogueText = aggregateDialogue(priorLines);
     final normalizedDialogue = normalizeText(dialogueText);
     SubtitleLine? activeLine;
     for (final line in subtitles.lines) {
@@ -42,9 +57,12 @@ class SceneAnalyzerService {
 
     return SceneContext(
       timestampMs: timestampMs,
-      windowSeconds: windowSeconds,
+      sceneBeforeSeconds: sceneBeforeSeconds,
+      sceneAfterSeconds: sceneAfterSeconds,
       activeLine: activeLine,
       dialogueText: dialogueText,
+      askDialogueText: askDialogueText,
+      priorDialogueText: priorDialogueText,
       characters: characters,
     );
   }

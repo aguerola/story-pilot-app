@@ -21,19 +21,36 @@ class SceneCharacter extends Equatable {
 class SceneContext extends Equatable {
   const SceneContext({
     required this.timestampMs,
-    required this.windowSeconds,
+    required this.sceneBeforeSeconds,
+    required this.sceneAfterSeconds,
     this.activeLine,
     required this.dialogueText,
+    required this.askDialogueText,
+    required this.priorDialogueText,
     required this.characters,
   });
 
   final int timestampMs;
-  final int windowSeconds;
+  final int sceneBeforeSeconds;
+  final int sceneAfterSeconds;
   final SubtitleLine? activeLine;
   final String dialogueText;
+  final String askDialogueText;
+  final String priorDialogueText;
   final List<SceneCharacter> characters;
 
+  String get sceneWindowLabel =>
+      '${sceneBeforeSeconds ~/ 60} min antes → ${sceneAfterSeconds}s después';
+
   @override
-  List<Object?> get props =>
-      [timestampMs, windowSeconds, activeLine, dialogueText, characters];
+  List<Object?> get props => [
+        timestampMs,
+        sceneBeforeSeconds,
+        sceneAfterSeconds,
+        activeLine,
+        dialogueText,
+        askDialogueText,
+        priorDialogueText,
+        characters,
+      ];
 }

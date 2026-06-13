@@ -38,9 +38,12 @@ void main() {
 
   final context = SceneContext(
     timestampMs: 2000,
-    windowSeconds: 30,
+    sceneBeforeSeconds: 120,
+    sceneAfterSeconds: 30,
     activeLine: document.lines.first,
     dialogueText: 'Neo habla con Morpheus',
+    askDialogueText: 'Neo habla con Morpheus',
+    priorDialogueText: '',
     characters: [
       SceneCharacter(
         castMember: const CastMember(
@@ -86,7 +89,6 @@ void main() {
           subtitles: document,
           cast: const [],
           timestampMs: 2000,
-          windowSeconds: 30,
         ),
       ).thenAnswer((_) async => Success(context));
       return bloc;

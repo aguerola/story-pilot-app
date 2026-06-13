@@ -25,12 +25,3 @@ final class TimestampChanged extends SceneEvent {
   @override
   List<Object?> get props => [timestampMs];
 }
-
-final class WindowSecondsChanged extends SceneEvent {
-  const WindowSecondsChanged(this.windowSeconds);
-
-  final int windowSeconds;
-
-  @override
-  List<Object?> get props => [windowSeconds];
-}

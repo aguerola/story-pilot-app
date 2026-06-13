@@ -13,13 +13,15 @@ class SceneRepository {
     required SubtitleDocument subtitles,
     required List<CastMember> cast,
     required int timestampMs,
-    int windowSeconds = 30,
+    int sceneBeforeSeconds = SceneAnalyzerService.sceneBeforeSeconds,
+    int sceneAfterSeconds = SceneAnalyzerService.sceneAfterSeconds,
   }) async {
     final context = _analyzer.buildContext(
       subtitles: subtitles,
       cast: cast,
       timestampMs: timestampMs,
-      windowSeconds: windowSeconds,
+      sceneBeforeSeconds: sceneBeforeSeconds,
+      sceneAfterSeconds: sceneAfterSeconds,
     );
     return Success(context);
   }

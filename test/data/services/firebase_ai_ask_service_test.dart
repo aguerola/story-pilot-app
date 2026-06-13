@@ -6,16 +6,26 @@ import 'package:storypilot/domain/models/scene_context.dart';
 void main() {
   test('buildAskPromptContent includes dialogue and question', () {
     const context = SceneContext(
-      timestampMs: 1000,
-      windowSeconds: 30,
-      dialogueText: 'Neo: I know kung fu.',
+      timestampMs: 3661000,
+      sceneBeforeSeconds: 120,
+      sceneAfterSeconds: 30,
+      activeLine: null,
+      dialogueText: 'Final de la escena.',
+      askDialogueText: 'Inicio\nMitad\nFinal de la escena.',
+      priorDialogueText: 'Inicio\nMitad',
       characters: [],
     );
 
-    final content = buildAskPromptContent(context, '¿Qué pasa?');
+    final content = buildAskPromptContent(context, '¿Qué pasa al final?');
 
-    expect(content, contains('Neo: I know kung fu.'));
-    expect(content, contains('¿Qué pasa?'));
+    expect(content, contains('Momento seleccionado: 01:01:01'));
+    expect(content, contains('Escena seleccionada'));
+    expect(content, contains('2 min antes → 30s después'));
+    expect(content, contains('Final de la escena.'));
+    expect(content, contains('Contexto previo'));
+    expect(content, contains('Inicio\nMitad'));
+    expect(content, contains('¿Qué pasa al final?'));
+    expect(content, contains('ESCENA SELECCIONADA'));
     expect(content, contains('Personajes detectados'));
   });
 
