@@ -368,16 +368,6 @@ class _SceneBriefContent extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Qué está pasando', style: theme.textTheme.titleMedium),
-        const SizedBox(height: 8),
-        Text(
-          summary,
-          style: mutedSummary
-              ? theme.textTheme.bodyMedium
-                  ?.copyWith(color: theme.colorScheme.onSurfaceVariant)
-              : theme.textTheme.bodyLarge,
-        ),
-        const SizedBox(height: 20),
         if (characters.isNotEmpty) ...[
           Text('Personajes en escena', style: theme.textTheme.titleMedium),
           const SizedBox(height: 8),
@@ -387,7 +377,17 @@ class _SceneBriefContent extends StatelessWidget {
             children:
                 characters.map((c) => CharacterChip(character: c)).toList(),
           ),
+          const SizedBox(height: 20),
         ],
+        Text('Qué está pasando', style: theme.textTheme.titleMedium),
+        const SizedBox(height: 8),
+        Text(
+          summary,
+          style: mutedSummary
+              ? theme.textTheme.bodyMedium
+                  ?.copyWith(color: theme.colorScheme.onSurfaceVariant)
+              : theme.textTheme.bodyLarge,
+        ),
         DebugUsage(usage),
       ],
     );
@@ -404,10 +404,6 @@ class _SceneBriefSkeleton extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Qué está pasando', style: theme.textTheme.titleMedium),
-          const SizedBox(height: 8),
-          const Bone.multiText(lines: 3),
-          const SizedBox(height: 20),
           Text('Personajes en escena', style: theme.textTheme.titleMedium),
           const SizedBox(height: 8),
           const Wrap(
@@ -419,6 +415,10 @@ class _SceneBriefSkeleton extends StatelessWidget {
               _SkeletonCharacterChip(),
             ],
           ),
+          const SizedBox(height: 20),
+          Text('Qué está pasando', style: theme.textTheme.titleMedium),
+          const SizedBox(height: 8),
+          const Bone.multiText(lines: 3),
         ],
       ),
     );
