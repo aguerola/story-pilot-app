@@ -1,33 +1,32 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:storypilot/data/repositories/scene_repository.dart';
-import 'package:storypilot/data/repositories/subtitle_repository.dart';
 import 'package:storypilot/data/services/title_session_holder.dart';
 import 'package:storypilot/domain/failure.dart';
 import 'package:storypilot/domain/models/media_type.dart';
-import 'package:storypilot/domain/models/subtitle_document.dart';
 import 'package:storypilot/domain/models/tv_episode_selection.dart';
 import 'package:storypilot/domain/result.dart';
 import 'package:storypilot/ui/scene/bloc/scene_event.dart';
 import 'package:storypilot/ui/scene/bloc/scene_state.dart';
+import 'package:storypilot/utils/bloc_debounce.dart';
 
 class SceneBloc extends Bloc<SceneEvent, SceneState> {
-  SceneBloc(this._repository, this._subtitleRepository, this._session)
-      : super(const SceneInitial()) {
+  SceneBloc(this._repository, this._session) : super(const SceneInitial()) {
     on<SceneStarted>(_onStarted);
     on<EpisodeSelected>(_onEpisodeSelected);
-    on<TimestampChanged>(_onTimestampChanged);
+    on<TimestampChanged>(
+      _onTimestampChanged,
+      transformer: debounce(const Duration(milliseconds: 400)),
+    );
   }
 
   final SceneRepository _repository;
-  final SubtitleRepository _subtitleRepository;
   final TitleSessionHolder _session;
 
   Future<void> _onStarted(
     SceneStarted event,
     Emitter<SceneState> emit,
   ) async {
-    final mediaType =
-        _session.titleDetail?.summary.mediaType ?? MediaType.movie;
+    final mediaType = _resolveMediaType(event);
     final episode = _episodeSelection(event, mediaType);
     if (mediaType == MediaType.tv && episode == null) {
       emit(const SceneAwaitingEpisode());
@@ -36,7 +35,7 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> {
     if (episode != null) {
       _session.setSelectedEpisode(episode);
     }
-    await _loadSubtitlesAndContext(
+    await _prepareAndMaybeLoadContext(
       tmdbId: event.tmdbId,
       mediaType: mediaType,
       episode: episode,
@@ -57,7 +56,7 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> {
     );
     _session.setSelectedEpisode(episode);
     _session.clearPlaybackState();
-    await _loadSubtitlesAndContext(
+    await _prepareAndMaybeLoadContext(
       tmdbId: _session.titleDetail?.summary.id ?? 0,
       mediaType: mediaType,
       episode: episode,
@@ -73,6 +72,14 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> {
     await _loadContext(event.timestampMs, emit);
   }
 
+  MediaType _resolveMediaType(SceneStarted event) {
+    final detail = _session.titleDetail;
+    if (detail != null && detail.summary.id == event.tmdbId) {
+      return detail.summary.mediaType;
+    }
+    return event.mediaType;
+  }
+
   TvEpisodeSelection? _episodeSelection(SceneStarted event, MediaType type) {
     if (type != MediaType.tv) return null;
     if (event.seasonNumber != null && event.episodeNumber != null) {
@@ -84,22 +91,29 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> {
     return _session.selectedEpisode;
   }
 
-  Future<void> _loadSubtitlesAndContext({
+  Future<void> _prepareAndMaybeLoadContext({
     required int tmdbId,
     required MediaType mediaType,
     required TvEpisodeSelection? episode,
     required int timestampMs,
     required Emitter<SceneState> emit,
   }) async {
-    final subtitles = await _resolveSubtitles(
+    emit(const SceneLoading());
+    final prepareResult = await _repository.prepareScene(
       tmdbId: tmdbId,
       mediaType: mediaType,
       episode: episode,
-      emit: emit,
+      titleLabel: _session.titleDetail?.summary.displayLabel,
+      imdbId: _session.titleDetail?.imdbId,
     );
-    if (subtitles == null) {
-      return;
+    switch (prepareResult) {
+      case Success(:final data):
+        _session.setDurationMs(data);
+      case Error(:final failure):
+        emit(SceneFailure(failure));
+        return;
     }
+
     if (timestampMs > 0) {
       await _loadContext(timestampMs, emit);
     } else {
@@ -107,56 +121,22 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> {
     }
   }
 
-  Future<SubtitleDocument?> _resolveSubtitles({
-    required int tmdbId,
-    required MediaType mediaType,
-    required TvEpisodeSelection? episode,
-    required Emitter<SceneState> emit,
-  }) async {
-    final sessionDoc = _session.subtitleDocument;
-    if (sessionDoc != null &&
-        sessionDoc.titleId == tmdbId &&
-        (mediaType != MediaType.tv ||
-            _session.selectedEpisode == episode)) {
-      return sessionDoc;
-    }
-
-    final cached = await _subtitleRepository.getCachedForTitle(
-      tmdbId,
-      episode: episode,
-    );
-    if (cached != null && cached.language == SubtitleRepository.subtitleLanguage) {
-      _session.setSubtitleDocument(cached);
-      return cached;
-    }
-
-    emit(const SceneLoading());
-    final result = await _subtitleRepository.ensureSubtitleForTitle(
-      tmdbId: tmdbId,
-      mediaType: mediaType,
-      episode: episode,
-    );
-    switch (result) {
-      case Success(:final data):
-        _session.setSubtitleDocument(data);
-        return data;
-      case Error(:final failure):
-        emit(SceneFailure(failure));
-        return null;
-    }
-  }
-
   Future<void> _loadContext(int timestampMs, Emitter<SceneState> emit) async {
-    final subtitles = _session.subtitleDocument;
-    if (subtitles == null) {
-      emit(const SceneFailure(NotFoundFailure('Subtitles not available')));
+    final detail = _session.titleDetail;
+    if (detail == null) {
+      emit(const SceneFailure(NotFoundFailure('Title not available')));
       return;
     }
+
     emit(const SceneLoading());
+    final mediaType = detail.summary.mediaType;
     final result = await _repository.getContext(
-      subtitles: subtitles,
+      tmdbId: detail.summary.id,
+      mediaType: mediaType,
       timestampMs: timestampMs,
-      titleLabel: _session.titleDetail?.summary.displayLabel,
+      episode: mediaType == MediaType.tv ? _session.selectedEpisode : null,
+      titleLabel: detail.summary.displayLabel,
+      imdbId: detail.imdbId,
     );
     switch (result) {
       case Success(:final data):

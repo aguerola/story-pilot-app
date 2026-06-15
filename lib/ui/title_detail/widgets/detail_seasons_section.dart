@@ -96,7 +96,7 @@ class _SeasonExpansionTileState extends State<_SeasonExpansionTile> {
         episodeNumber: episodeNumber,
       ),
     );
-    context.push('/title/${widget.titleId}/scene');
+    context.push('/title/${widget.titleId}/scene?type=tv');
   }
 
   @override

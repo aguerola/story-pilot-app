@@ -60,6 +60,28 @@ class SceneContext extends Equatable {
     return payload;
   }
 
+  factory SceneContext.fromApiMap(Map<String, dynamic> json) {
+    SubtitleLine? activeLine;
+    final rawActive = json['activeLine'];
+    if (rawActive is Map) {
+      activeLine = SubtitleLine.fromJson(
+        Map<String, dynamic>.from(rawActive),
+      );
+    }
+
+    return SceneContext(
+      timestampMs: json['timestampMs'] as int,
+      sceneBeforeSeconds: json['sceneBeforeSeconds'] as int? ?? 120,
+      sceneAfterSeconds: json['sceneAfterSeconds'] as int? ?? 30,
+      activeLine: activeLine,
+      dialogueText: json['dialogueText'] as String? ?? '',
+      askDialogueText: json['askDialogueText'] as String? ?? '',
+      priorDialogueText: json['priorDialogueText'] as String? ?? '',
+      followingDialogueText: json['followingDialogueText'] as String? ?? '',
+      titleLabel: json['titleLabel'] as String?,
+    );
+  }
+
   @override
   List<Object?> get props => [
         timestampMs,

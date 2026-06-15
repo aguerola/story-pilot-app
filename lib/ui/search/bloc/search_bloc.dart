@@ -3,11 +3,7 @@ import 'package:storypilot/data/repositories/title_repository.dart';
 import 'package:storypilot/domain/result.dart';
 import 'package:storypilot/ui/search/bloc/search_event.dart';
 import 'package:storypilot/ui/search/bloc/search_state.dart';
-import 'package:stream_transform/stream_transform.dart';
-
-EventTransformer<E> debounce<E>(Duration duration) {
-  return (events, mapper) => events.debounce(duration).switchMap(mapper);
-}
+import 'package:storypilot/utils/bloc_debounce.dart';
 
 class SearchBloc extends Bloc<SearchEvent, SearchState> {
   SearchBloc(this._repository) : super(const SearchInitial()) {

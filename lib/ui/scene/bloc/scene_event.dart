@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:storypilot/domain/models/media_type.dart';
 
 sealed class SceneEvent extends Equatable {
   const SceneEvent();
@@ -10,19 +11,21 @@ sealed class SceneEvent extends Equatable {
 final class SceneStarted extends SceneEvent {
   const SceneStarted({
     required this.tmdbId,
+    required this.mediaType,
     this.initialTimestampMs = 0,
     this.seasonNumber,
     this.episodeNumber,
   });
 
   final int tmdbId;
+  final MediaType mediaType;
   final int initialTimestampMs;
   final int? seasonNumber;
   final int? episodeNumber;
 
   @override
   List<Object?> get props =>
-      [tmdbId, initialTimestampMs, seasonNumber, episodeNumber];
+      [tmdbId, mediaType, initialTimestampMs, seasonNumber, episodeNumber];
 }
 
 final class EpisodeSelected extends SceneEvent {

@@ -4,9 +4,11 @@ import 'package:storypilot/config/gemini_model.dart';
 import 'package:storypilot/data/services/ask_functions_client.dart';
 import 'package:storypilot/data/services/ask_service.dart';
 import 'package:storypilot/data/services/local_stub_ask_service.dart';
+import 'package:storypilot/data/services/title_session_holder.dart';
 import 'package:storypilot/domain/failure.dart';
 import 'package:storypilot/domain/models/ai_usage.dart';
 import 'package:storypilot/domain/models/cast_member.dart';
+import 'package:storypilot/domain/models/media_type.dart';
 import 'package:storypilot/domain/models/scene_answer.dart';
 import 'package:storypilot/domain/models/scene_brief.dart';
 import 'package:storypilot/domain/models/scene_context.dart';
@@ -15,11 +17,14 @@ import 'package:storypilot/domain/result.dart';
 class CallableAskService implements AskService {
   CallableAskService({
     required AskFunctionsClient client,
+    required TitleSessionHolder session,
     LocalStubAskService? fallback,
   })  : _client = client,
+        _session = session,
         _fallback = fallback ?? LocalStubAskService();
 
   final AskFunctionsClient _client;
+  final TitleSessionHolder _session;
   final LocalStubAskService _fallback;
 
   @override
@@ -28,9 +33,20 @@ class CallableAskService implements AskService {
     required List<CastMember> cast,
     GeminiModel model = GeminiModel.defaultModel,
   }) async {
+    final title = _session.titleDetail;
+    if (title == null) {
+      return _fallback.brief(context: context, cast: cast, model: model);
+    }
+
     try {
       final data = await _client.sceneBrief(
-        context: context.toAskPayload(),
+        tmdbId: title.summary.id,
+        mediaType: title.summary.mediaType,
+        timestampMs: context.timestampMs,
+        titleLabel: context.titleLabel ?? title.summary.displayLabel,
+        episode: title.summary.mediaType == MediaType.tv
+            ? _session.selectedEpisode
+            : null,
         cast: cast
             .map((member) => {'characterName': member.characterName})
             .where((entry) => (entry['characterName'] as String).isNotEmpty)
@@ -90,8 +106,19 @@ class CallableAskService implements AskService {
     required String question,
     required GeminiModel model,
   }) async {
+    final title = _session.titleDetail;
+    if (title == null) {
+      return const Error(NotFoundFailure('Title not available'));
+    }
+
     final data = await _client.sceneAsk(
-      context: context.toAskPayload(),
+      tmdbId: title.summary.id,
+      mediaType: title.summary.mediaType,
+      timestampMs: context.timestampMs,
+      titleLabel: context.titleLabel ?? title.summary.displayLabel,
+      episode: title.summary.mediaType == MediaType.tv
+          ? _session.selectedEpisode
+          : null,
       question: question,
       modelId: model.id,
     );

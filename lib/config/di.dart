@@ -4,7 +4,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:storypilot/config/env.dart';
 import 'package:storypilot/data/repositories/ask_repository.dart';
 import 'package:storypilot/data/repositories/scene_repository.dart';
-import 'package:storypilot/data/repositories/subtitle_repository.dart';
 import 'package:storypilot/data/repositories/title_repository.dart';
 import 'package:storypilot/data/services/auth_service.dart';
 import 'package:storypilot/data/services/browse_history_service.dart';
@@ -14,12 +13,9 @@ import 'package:storypilot/data/services/ask_functions_client.dart';
 import 'package:storypilot/data/services/callable_ask_service.dart';
 import 'package:storypilot/data/services/local_cache_service.dart';
 import 'package:storypilot/data/services/local_stub_ask_service.dart';
-import 'package:storypilot/data/services/open_subtitles_service.dart';
-import 'package:storypilot/data/services/subtitle_functions_client.dart';
+import 'package:storypilot/data/services/scene_functions_client.dart';
 import 'package:storypilot/ui/ask/bloc/ask_bloc.dart';
-import 'package:storypilot/data/services/scene_analyzer_service.dart';
 import 'package:storypilot/data/services/settings_service.dart';
-import 'package:storypilot/data/services/subtitle_parser_service.dart';
 import 'package:storypilot/data/services/title_session_holder.dart';
 import 'package:storypilot/data/services/tmdb_service.dart';
 import 'package:storypilot/ui/home/bloc/home_bloc.dart';
@@ -60,35 +56,19 @@ Future<void> configureDependencies() async {
       ),
     )
     ..registerLazySingleton(() => TmdbService(getIt<Dio>()))
-    ..registerLazySingleton(
-      () => OpenSubtitlesService(
-        getIt<Dio>(),
-        functionsClient: Env.useStoryPilotServer
-            ? FirebaseSubtitleFunctionsClient()
-            : null,
-      ),
+    ..registerLazySingleton<SceneFunctionsClient>(
+      FirebaseSceneFunctionsClient.new,
     )
-    ..registerLazySingleton(SubtitleParserService.new)
-    ..registerLazySingleton(
-      () => LocalCacheService(getIt<SharedPreferences>()),
-    )
+    ..registerLazySingleton(LocalCacheService.new)
     ..registerLazySingleton(
       () => BrowseHistoryService(getIt<SharedPreferences>()),
     )
-    ..registerLazySingleton(SceneAnalyzerService.new)
     ..registerLazySingleton<AskService>(_createAskService)
     ..registerLazySingleton(
       () => TitleRepository(getIt<TmdbService>(), getIt<LocalCacheService>()),
     )
     ..registerLazySingleton(
-      () => SubtitleRepository(
-        getIt<OpenSubtitlesService>(),
-        getIt<SubtitleParserService>(),
-        getIt<LocalCacheService>(),
-      ),
-    )
-    ..registerLazySingleton(
-      () => SceneRepository(getIt<SceneAnalyzerService>()),
+      () => SceneRepository(getIt<SceneFunctionsClient>()),
     )
     ..registerLazySingleton(() => AskRepository(getIt<AskService>()))
     ..registerFactory(() => SearchBloc(getIt<TitleRepository>()))
@@ -108,7 +88,6 @@ Future<void> configureDependencies() async {
     ..registerFactory(
       () => SceneBloc(
         getIt<SceneRepository>(),
-        getIt<SubtitleRepository>(),
         getIt<TitleSessionHolder>(),
       ),
     )
@@ -126,6 +105,7 @@ AskService _createAskService() {
   if (Env.useFirebaseAi) {
     return CallableAskService(
       client: FirebaseAskFunctionsClient(),
+      session: getIt<TitleSessionHolder>(),
     );
   }
   return LocalStubAskService();

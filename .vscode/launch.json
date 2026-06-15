@@ -19,8 +19,7 @@
       "deviceId": "chrome",
       "toolArgs": [
         "--web-port=8473",
-        "--dart-define=TMDB_API_KEY=58c65e7650a26f5fea3317cb96aeb1f6",
-        "--dart-define=OPENSUBTITLES_API_KEY=ybp2qeMtsYAVnJuc1fub4eMNzV2UrEAl"
+        "--dart-define=TMDB_API_KEY=58c65e7650a26f5fea3317cb96aeb1f6"
       ]
     },
     {
@@ -32,8 +31,8 @@
       "toolArgs": [
         "--web-port=8473",
         "--dart-define=TMDB_API_KEY=58c65e7650a26f5fea3317cb96aeb1f6",
-        "--dart-define=OPENSUBTITLES_API_KEY=ybp2qeMtsYAVnJuc1fub4eMNzV2UrEAl",
-        "--dart-define=USE_FIREBASE_AI=true"
+        "--dart-define=USE_FIREBASE_AI=true",
+        "--dart-define=USE_FUNCTIONS_EMULATOR=true"
       ]
     }
   ]

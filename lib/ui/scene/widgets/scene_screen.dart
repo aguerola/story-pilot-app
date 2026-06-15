@@ -22,9 +22,14 @@ import 'package:storypilot/ui/scene/widgets/season_episode_selector.dart';
 import 'package:storypilot/utils/timestamp_utils.dart';
 
 class SceneScreen extends StatelessWidget {
-  const SceneScreen({super.key, required this.id});
+  const SceneScreen({
+    super.key,
+    required this.id,
+    required this.mediaType,
+  });
 
   final int id;
+  final MediaType mediaType;
 
   @override
   Widget build(BuildContext context) {
@@ -36,15 +41,19 @@ class SceneScreen extends StatelessWidget {
         BlocProvider(create: (_) => getIt<AskBloc>()),
         BlocProvider(create: (_) => getIt<SceneBriefCubit>()),
       ],
-      child: _SceneView(id: id),
+      child: _SceneView(id: id, mediaType: mediaType),
     );
   }
 }
 
 class _SceneView extends StatefulWidget {
-  const _SceneView({required this.id});
+  const _SceneView({
+    required this.id,
+    required this.mediaType,
+  });
 
   final int id;
+  final MediaType mediaType;
 
   @override
   State<_SceneView> createState() => _SceneViewState();
@@ -63,10 +72,17 @@ class _SceneViewState extends State<_SceneView> {
   @override
   void initState() {
     super.initState();
-    final detail = getIt<TitleSessionHolder>().titleDetail;
-    _isTv = detail?.summary.mediaType == MediaType.tv;
-    _seasons = detail?.seasons ?? const [];
-    final sessionEpisode = getIt<TitleSessionHolder>().selectedEpisode;
+    final session = getIt<TitleSessionHolder>();
+    final sessionDetail = session.titleDetail;
+    final detailMatchesId =
+        sessionDetail != null && sessionDetail.summary.id == widget.id;
+    final effectiveMediaType = detailMatchesId
+        ? sessionDetail.summary.mediaType
+        : widget.mediaType;
+    _isTv = effectiveMediaType == MediaType.tv;
+    _seasons =
+        detailMatchesId ? (sessionDetail.seasons ?? const []) : const [];
+    final sessionEpisode = session.selectedEpisode;
     if (_isTv && _seasons.isNotEmpty) {
       _selectedSeason =
           sessionEpisode?.seasonNumber ?? _seasons.first.seasonNumber;
@@ -78,18 +94,31 @@ class _SceneViewState extends State<_SceneView> {
   void _startScene() {
     if (_started) return;
     _started = true;
-    if (_isTv) {
+    final session = getIt<TitleSessionHolder>();
+    final sessionDetail = session.titleDetail;
+    final detailMatchesId =
+        sessionDetail != null && sessionDetail.summary.id == widget.id;
+    final mediaType = detailMatchesId
+        ? sessionDetail.summary.mediaType
+        : widget.mediaType;
+    if (mediaType == MediaType.tv) {
       if (_selectedSeason == null || _selectedEpisode == null) return;
       context.read<SceneBloc>().add(
             SceneStarted(
               tmdbId: widget.id,
+              mediaType: mediaType,
               seasonNumber: _selectedSeason,
               episodeNumber: _selectedEpisode,
             ),
           );
       return;
     }
-    context.read<SceneBloc>().add(SceneStarted(tmdbId: widget.id));
+    context.read<SceneBloc>().add(
+          SceneStarted(
+            tmdbId: widget.id,
+            mediaType: mediaType,
+          ),
+        );
   }
 
   void _onEpisodeSelectionChanged(int seasonNumber, int episodeNumber) {
@@ -164,13 +193,9 @@ class _SceneViewState extends State<_SceneView> {
         body: BlocBuilder<SceneBloc, SceneState>(
           builder: (context, state) {
             if (state is SceneLoaded || state is SceneAwaitingTimestamp) {
-              final lastLine = getIt<TitleSessionHolder>()
-                  .subtitleDocument
-                  ?.lines
-                  .last
-                  .endMs;
-              if (lastLine != null && lastLine > 0) {
-                _maxMs = lastLine.toDouble();
+              final durationMs = getIt<TitleSessionHolder>().durationMs;
+              if (durationMs != null && durationMs > 0) {
+                _maxMs = durationMs.toDouble();
               }
             }
 

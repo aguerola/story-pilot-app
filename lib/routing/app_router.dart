@@ -32,7 +32,11 @@ GoRouter createAppRouter() {
             path: 'scene',
             builder: (context, state) {
               final id = int.parse(state.pathParameters['id']!);
-              return SceneScreen(id: id);
+              final typeName = state.uri.queryParameters['type'] ?? 'movie';
+              return SceneScreen(
+                id: id,
+                mediaType: MediaType.fromTmdb(typeName),
+              );
             },
           ),
           GoRoute(

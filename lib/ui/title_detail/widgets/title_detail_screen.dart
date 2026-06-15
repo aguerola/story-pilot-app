@@ -72,7 +72,10 @@ class _TitleDetailView extends StatelessWidget {
                           Text(detail.overview),
                           const SizedBox(height: 16),
                         ],
-                        DetailActions(titleId: id),
+                        DetailActions(
+                          titleId: id,
+                          mediaType: detail.summary.mediaType,
+                        ),
                         const SizedBox(height: 8),
                         DetailCastSection(cast: detail.cast),
                         if (detail.seasons != null)
