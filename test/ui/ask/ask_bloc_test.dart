@@ -6,8 +6,6 @@ import 'package:storypilot/config/gemini_model.dart';
 import 'package:storypilot/data/repositories/ask_repository.dart';
 import 'package:storypilot/data/services/auth_service.dart';
 import 'package:storypilot/data/services/usage_limit_service.dart';
-import 'package:storypilot/domain/models/cast_member.dart';
-import 'package:storypilot/domain/models/match_confidence.dart';
 import 'package:storypilot/domain/models/scene_answer.dart';
 import 'package:storypilot/domain/models/scene_context.dart';
 import 'package:storypilot/domain/result.dart';
@@ -35,18 +33,6 @@ void main() {
     dialogueText: 'Neo habla',
     askDialogueText: 'Neo habla',
     priorDialogueText: '',
-    characters: [
-      SceneCharacter(
-        castMember: const CastMember(
-          id: 1,
-          name: 'Keanu Reeves',
-          characterName: 'Neo',
-          billingOrder: 0,
-        ),
-        confidence: MatchConfidence.high,
-        matchedBy: 'test',
-      ),
-    ],
   );
 
   setUp(() {
@@ -159,7 +145,6 @@ void main() {
         dialogueText: 'Trinity habla',
         askDialogueText: 'Trinity habla',
         priorDialogueText: 'Neo habla',
-        characters: [],
       );
       when(
         () => repository.ask(

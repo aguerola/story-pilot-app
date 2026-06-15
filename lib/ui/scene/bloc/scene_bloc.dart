@@ -155,7 +155,6 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> {
     emit(const SceneLoading());
     final result = await _repository.getContext(
       subtitles: subtitles,
-      cast: _session.cast,
       timestampMs: timestampMs,
       titleLabel: _session.titleDetail?.summary.displayLabel,
     );

@@ -1,5 +1,3 @@
-import 'package:storypilot/domain/models/cast_member.dart';
-import 'package:storypilot/domain/models/match_confidence.dart';
 import 'package:storypilot/domain/models/scene_context.dart';
 import 'package:storypilot/domain/models/subtitle_document.dart';
 import 'package:storypilot/domain/models/subtitle_line.dart';
@@ -9,24 +7,8 @@ class SceneAnalyzerService {
   static const sceneBeforeSeconds = 120;
   static const sceneAfterSeconds = 30;
 
-  /// Credited roles that are not real named characters (species, crowd, etc.).
-  /// Matched against the full normalized character name, so named characters
-  /// like "Dr. Voller" are never excluded.
-  static const _nonCharacterRoles = {
-    'navi',
-    "na'vi",
-    'crowd',
-    'villager',
-    'villagers',
-    'soldier',
-    'soldiers',
-    'guard',
-    'guards',
-  };
-
   SceneContext buildContext({
     required SubtitleDocument subtitles,
-    required List<CastMember> cast,
     required int timestampMs,
     int sceneBeforeSeconds = SceneAnalyzerService.sceneBeforeSeconds,
     int sceneAfterSeconds = SceneAnalyzerService.sceneAfterSeconds,
@@ -56,10 +38,7 @@ class SceneAnalyzerService {
     final askDialogueText = aggregateDialogue(askLines);
     final priorDialogueText = aggregateDialogue(priorLines);
     final followingDialogueText = aggregateDialogue(followingLines);
-    // Match character names against spoken words only — stage directions like
-    // "(SPEAKING SOFTLY IN NA'VI)" must not count as dialogue.
-    final normalizedDialogue =
-        normalizeText(stripStageDirections(dialogueText));
+
     SubtitleLine? activeLine;
     for (final line in subtitles.lines) {
       if (line.containsTimestamp(timestampMs)) {
@@ -67,22 +46,6 @@ class SceneAnalyzerService {
         break;
       }
     }
-
-    final characters = <SceneCharacter>[];
-    for (final member in cast) {
-      if (_nonCharacterRoles.contains(normalizeText(member.characterName))) {
-        continue;
-      }
-      final match = _matchCharacter(member, normalizedDialogue, dialogueText);
-      if (match != null) {
-        characters.add(match);
-      }
-    }
-
-    characters.sort(
-      (a, b) =>
-          a.castMember.billingOrder.compareTo(b.castMember.billingOrder),
-    );
 
     return SceneContext(
       timestampMs: timestampMs,
@@ -94,56 +57,6 @@ class SceneAnalyzerService {
       priorDialogueText: priorDialogueText,
       followingDialogueText: followingDialogueText,
       titleLabel: titleLabel,
-      characters: characters,
     );
-  }
-
-  SceneCharacter? _matchCharacter(
-    CastMember member,
-    String normalizedDialogue,
-    String rawDialogue,
-  ) {
-    final character = normalizeText(member.characterName);
-    final actor = normalizeText(member.name);
-    final actorLastName = actor.split(' ').last;
-
-    if (character.isNotEmpty && containsWord(normalizedDialogue, character)) {
-      return SceneCharacter(
-        castMember: member,
-        confidence: MatchConfidence.high,
-        matchedBy: 'Nombre de personaje en subtítulo',
-      );
-    }
-
-    if (actor.isNotEmpty && containsWord(normalizedDialogue, actor)) {
-      return SceneCharacter(
-        castMember: member,
-        confidence: MatchConfidence.high,
-        matchedBy: 'Nombre de actor en subtítulo',
-      );
-    }
-
-    if (actorLastName.length > 2 &&
-        containsWord(normalizedDialogue, actorLastName)) {
-      return SceneCharacter(
-        castMember: member,
-        confidence: MatchConfidence.medium,
-        matchedBy: 'Apellido en subtítulo',
-      );
-    }
-
-    final dialoguePattern = RegExp(
-      r'[-\[]\s*' + RegExp.escape(member.characterName.split(' ').first),
-      caseSensitive: false,
-    );
-    if (dialoguePattern.hasMatch(rawDialogue)) {
-      return SceneCharacter(
-        castMember: member,
-        confidence: MatchConfidence.low,
-        matchedBy: 'Formato de diálogo',
-      );
-    }
-
-    return null;
   }
 }

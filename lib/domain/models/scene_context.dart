@@ -29,7 +29,6 @@ class SceneContext extends Equatable {
     required this.priorDialogueText,
     this.followingDialogueText = '',
     this.titleLabel,
-    required this.characters,
   });
 
   final int timestampMs;
@@ -41,7 +40,6 @@ class SceneContext extends Equatable {
   final String priorDialogueText;
   final String followingDialogueText;
   final String? titleLabel;
-  final List<SceneCharacter> characters;
 
   String get sceneWindowLabel =>
       '${sceneBeforeSeconds ~/ 60} min antes → ${sceneAfterSeconds}s después';
@@ -59,12 +57,6 @@ class SceneContext extends Equatable {
     if (activeText != null && activeText.isNotEmpty) {
       payload['activeLine'] = {'text': activeText};
     }
-    if (characters.isNotEmpty) {
-      payload['characters'] = characters
-          .map((c) => {'characterName': c.castMember.characterName})
-          .where((entry) => (entry['characterName'] as String).isNotEmpty)
-          .toList();
-    }
     return payload;
   }
 
@@ -79,6 +71,5 @@ class SceneContext extends Equatable {
         priorDialogueText,
         followingDialogueText,
         titleLabel,
-        characters,
       ];
 }

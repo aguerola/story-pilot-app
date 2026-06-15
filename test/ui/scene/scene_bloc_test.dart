@@ -5,8 +5,6 @@ import 'package:storypilot/data/repositories/scene_repository.dart';
 import 'package:storypilot/data/repositories/subtitle_repository.dart';
 import 'package:storypilot/data/services/title_session_holder.dart';
 import 'package:storypilot/domain/failure.dart';
-import 'package:storypilot/domain/models/cast_member.dart';
-import 'package:storypilot/domain/models/match_confidence.dart';
 import 'package:storypilot/domain/models/media_type.dart';
 import 'package:storypilot/domain/models/scene_context.dart';
 import 'package:storypilot/domain/models/season.dart';
@@ -47,18 +45,6 @@ void main() {
     dialogueText: 'Neo habla con Morpheus',
     askDialogueText: 'Neo habla con Morpheus',
     priorDialogueText: '',
-    characters: [
-      SceneCharacter(
-        castMember: const CastMember(
-          id: 1,
-          name: 'Keanu Reeves',
-          characterName: 'Neo',
-          billingOrder: 0,
-        ),
-        confidence: MatchConfidence.high,
-        matchedBy: 'test',
-      ),
-    ],
   );
 
   setUpAll(() {
@@ -99,7 +85,6 @@ void main() {
       when(
         () => repository.getContext(
           subtitles: document,
-          cast: const [],
           timestampMs: 2000,
           titleLabel: 'Matrix',
         ),

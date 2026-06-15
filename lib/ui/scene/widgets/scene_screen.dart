@@ -337,11 +337,10 @@ class _SceneLoadedContent extends StatelessWidget {
             characters: characters,
             usage: usage,
           ),
-        // Only on a real failure fall back to the heuristic characters.
         SceneBriefFailure() => _SceneBriefContent(
             summary:
                 'No se pudo generar el resumen automático. Puedes preguntar abajo.',
-            characters: sceneContext.characters,
+            characters: const [],
             mutedSummary: true,
           ),
       },

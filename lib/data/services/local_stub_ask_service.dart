@@ -30,9 +30,6 @@ class LocalStubAskService implements AskService {
         summary: summary.isEmpty
             ? 'No hay diálogo en la ventana temporal seleccionada.'
             : 'En esta escena ocurre lo siguiente: $summary',
-        presentCharacterNames: context.characters
-            .map((c) => c.castMember.characterName)
-            .toList(),
         questions: fallbackSuggestedQuestions,
       ),
     );
@@ -48,22 +45,11 @@ class LocalStubAskService implements AskService {
     if (lower.contains('quién') ||
         lower.contains('quien') ||
         lower.contains('who')) {
-      if (context.characters.isEmpty) {
-        return Success(
-          SceneAnswer(
-            question: question,
-            answer: 'No se detectaron personajes en esta escena.',
-          ),
-        );
-      }
-      final names = context.characters
-          .map((c) => c.castMember.characterName)
-          .join(', ');
       return Success(
         SceneAnswer(
           question: question,
-          answer: 'Personajes detectados en la escena: $names',
-          sources: [context.dialogueText.split('\n').firstOrNull ?? ''],
+          answer:
+              'La detección de personajes requiere AI. Activa USE_FIREBASE_AI para obtener personajes en escena.',
         ),
       );
     }
@@ -91,12 +77,8 @@ class LocalStubAskService implements AskService {
       SceneAnswer(
         question: question,
         answer:
-            'Puedo responder preguntas sobre "quién" está en la escena o "qué" ocurre según el diálogo disponible.',
+            'Puedo responder preguntas sobre "qué" ocurre según el diálogo disponible. Para personajes en escena, activa AI.',
       ),
     );
   }
-}
-
-extension _FirstOrNull<T> on List<T> {
-  T? get firstOrNull => isEmpty ? null : first;
 }

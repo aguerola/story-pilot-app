@@ -22,7 +22,6 @@ void main() {
     dialogueText: 'Jake Sully will go first.',
     askDialogueText: 'Jake Sully will go first.',
     priorDialogueText: '',
-    characters: [],
   );
 
   const cast = [

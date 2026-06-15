@@ -14,7 +14,6 @@ void main() {
       priorDialogueText: 'Inicio\nMitad',
       followingDialogueText: 'Justo después',
       titleLabel: 'Matrix (1999)',
-      characters: [],
     );
 
     final payload = context.toAskPayload();
@@ -22,7 +21,7 @@ void main() {
     expect(payload['timestampMs'], 3661000);
     expect(payload['priorDialogueText'], 'Inicio\nMitad');
     expect(payload['titleLabel'], 'Matrix (1999)');
-    expect(payload.containsKey('followingDialogueText'), isFalse);
+    expect(payload.containsKey('characters'), isFalse);
     expect(payload.containsKey('dialogueText'), isFalse);
     expect(payload.containsKey('askDialogueText'), isFalse);
     expect(payload['priorDialogueText'], isNot(contains('Justo después')));
