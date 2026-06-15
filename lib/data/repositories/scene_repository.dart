@@ -27,7 +27,9 @@ class SceneRepository {
       );
       if (result.durationMs <= 0) {
         return const Error(
-          NotFoundFailure('Subtitles not available for this title'),
+          NotFoundFailure(
+            'No hay información de escena disponible para este título.',
+          ),
         );
       }
       return Success(result.durationMs);
@@ -56,7 +58,9 @@ class SceneRepository {
       final context = result.context;
       if (context == null) {
         return const Error(
-          NotFoundFailure('Scene context not available'),
+          NotFoundFailure(
+            'No se pudo cargar la información de la escena.',
+          ),
         );
       }
       return Success(context);
@@ -67,9 +71,9 @@ class SceneRepository {
 
   Failure _mapSceneError(Object error) {
     final message = error.toString();
-    if (message.contains('No English SRT subtitles found')) {
+    if (message.contains('Scene dialogue not available')) {
       return const NotFoundFailure(
-        'No hay subtítulos en inglés disponibles para este título.',
+        'No hay información de escena disponible para este título.',
       );
     }
     return NetworkFailure(message);

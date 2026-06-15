@@ -5,7 +5,6 @@
 # o exporta las variables en tu shell (~/.zshrc):
 #
 #   export TMDB_API_KEY="..."
-#   export OPENSUBTITLES_API_KEY="..."
 #   export CORS_PROXY="https://corsproxy.io/?url="  # opcional, web dev
 #
 # Luego usa la config "Story Pilot — Web (dev)" del panel Run and Debug.

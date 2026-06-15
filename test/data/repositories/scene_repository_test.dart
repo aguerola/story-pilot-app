@@ -5,7 +5,7 @@ import 'package:storypilot/data/services/scene_functions_client.dart';
 import 'package:storypilot/domain/failure.dart';
 import 'package:storypilot/domain/models/media_type.dart';
 import 'package:storypilot/domain/models/scene_context.dart';
-import 'package:storypilot/domain/models/subtitle_line.dart';
+import 'package:storypilot/domain/models/dialogue_line.dart';
 import 'package:storypilot/domain/result.dart';
 
 class MockSceneFunctionsClient extends Mock implements SceneFunctionsClient {}
@@ -18,7 +18,7 @@ void main() {
     timestampMs: 2000,
     sceneBeforeSeconds: 120,
     sceneAfterSeconds: 30,
-    activeLine: SubtitleLine(startMs: 0, endMs: 5000, text: 'Hello'),
+    activeLine: DialogueLine(startMs: 0, endMs: 5000, text: 'Hello'),
     dialogueText: 'Hello',
     askDialogueText: 'Hello',
     priorDialogueText: 'Hello',
@@ -105,7 +105,7 @@ void main() {
     );
   });
 
-  test('prepareScene maps missing subtitles to NotFoundFailure', () async {
+  test('prepareScene maps missing scene data to NotFoundFailure', () async {
     when(
       () => client.getSceneContext(
         tmdbId: 1,
@@ -116,7 +116,7 @@ void main() {
         episode: any(named: 'episode'),
       ),
     ).thenThrow(
-      Exception('[firebase_functions/unavailable] No English SRT subtitles found'),
+      Exception('[firebase_functions/unavailable] Scene dialogue not available'),
     );
 
     final result = await repository.prepareScene(
@@ -127,7 +127,7 @@ void main() {
     expect(result, isA<Error<int>>());
     expect(
       (result as Error<int>).failure.message,
-      'No hay subtítulos en inglés disponibles para este título.',
+      'No hay información de escena disponible para este título.',
     );
   });
 }

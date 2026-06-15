@@ -7,7 +7,7 @@ import 'package:storypilot/domain/failure.dart';
 import 'package:storypilot/domain/models/media_type.dart';
 import 'package:storypilot/domain/models/scene_context.dart';
 import 'package:storypilot/domain/models/season.dart';
-import 'package:storypilot/domain/models/subtitle_line.dart';
+import 'package:storypilot/domain/models/dialogue_line.dart';
 import 'package:storypilot/domain/models/title_detail.dart';
 import 'package:storypilot/domain/models/title_summary.dart';
 import 'package:storypilot/domain/models/tv_episode_selection.dart';
@@ -27,7 +27,7 @@ void main() {
     timestampMs: 2000,
     sceneBeforeSeconds: 120,
     sceneAfterSeconds: 30,
-    activeLine: SubtitleLine(startMs: 0, endMs: 5000, text: 'Neo habla con Morpheus'),
+    activeLine: DialogueLine(startMs: 0, endMs: 5000, text: 'Neo habla con Morpheus'),
     dialogueText: 'Neo habla con Morpheus',
     askDialogueText: 'Neo habla con Morpheus',
     priorDialogueText: '',
@@ -128,7 +128,7 @@ void main() {
           titleLabel: 'Matrix',
         ),
       ).thenAnswer(
-        (_) async => const Error(NotFoundFailure('No English SRT subtitles found')),
+        (_) async => const Error(NotFoundFailure('Scene dialogue not available')),
       );
       return SceneBloc(repository, session);
     },

@@ -1,5 +1,5 @@
 name: storypilot
-description: Scene Context — movie metadata, subtitles, and scene Q&A.
+description: Scene Context — movie metadata, scene context, and Q&A.
 publish_to: 'none'
 version: 1.0.0+1
 

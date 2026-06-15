@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:storypilot/domain/models/cast_member.dart';
 import 'package:storypilot/domain/models/match_confidence.dart';
-import 'package:storypilot/domain/models/subtitle_line.dart';
+import 'package:storypilot/domain/models/dialogue_line.dart';
 
 class SceneCharacter extends Equatable {
   const SceneCharacter({
@@ -34,7 +34,7 @@ class SceneContext extends Equatable {
   final int timestampMs;
   final int sceneBeforeSeconds;
   final int sceneAfterSeconds;
-  final SubtitleLine? activeLine;
+  final DialogueLine? activeLine;
   final String dialogueText;
   final String askDialogueText;
   final String priorDialogueText;
@@ -61,10 +61,10 @@ class SceneContext extends Equatable {
   }
 
   factory SceneContext.fromApiMap(Map<String, dynamic> json) {
-    SubtitleLine? activeLine;
+    DialogueLine? activeLine;
     final rawActive = json['activeLine'];
     if (rawActive is Map) {
-      activeLine = SubtitleLine.fromJson(
+      activeLine = DialogueLine.fromJson(
         Map<String, dynamic>.from(rawActive),
       );
     }

@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
 
-class SubtitleLine extends Equatable {
-  const SubtitleLine({
+class DialogueLine extends Equatable {
+  const DialogueLine({
     required this.startMs,
     required this.endMs,
     required this.text,
@@ -17,7 +17,7 @@ class SubtitleLine extends Equatable {
         'text': text,
       };
 
-  factory SubtitleLine.fromJson(Map<String, dynamic> json) => SubtitleLine(
+  factory DialogueLine.fromJson(Map<String, dynamic> json) => DialogueLine(
         startMs: json['startMs'] as int,
         endMs: json['endMs'] as int,
         text: json['text'] as String,

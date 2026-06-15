@@ -18,7 +18,7 @@ Widget → BloC → Repository → Service → API
 2. Open **Run and Debug** (`Cmd+Shift+D`) and pick a configuration from `.vscode/launch.json`:
    - **Story Pilot — Web (stub)**: Chrome, no API keys (Ask uses local stub).
    - **Story Pilot — Web (dev)**: reads `TMDB_API_KEY` from launch config.
-   - **Story Pilot — Web (Firebase AI)**: TMDB + Cloud Functions for subtitles and AI.
+   - **Story Pilot — Web (Firebase AI)**: TMDB + Cloud Functions for scene context and AI.
 3. Export keys in `~/.zshrc` (see `.vscode/launch.local.json.example`).
 
 ## Setup
@@ -40,9 +40,9 @@ Optional CORS proxy for web development:
 --dart-define=CORS_PROXY=https://corsproxy.io/?url=
 ```
 
-### AI and subtitles via Cloud Functions
+### AI via Cloud Functions
 
-Scene context, brief, and Q&A call **`getSceneContext`**, **`sceneBrief`**, and **`sceneAsk`** on [story-pilot-server](../story-pilot-server/). Subtitles and Gemini run server-side; keys never leave the backend.
+Scene context, brief, and Q&A call **`getSceneContext`**, **`sceneBrief`**, and **`sceneAsk`** on [story-pilot-server](../story-pilot-server/). Processing runs server-side; API keys never leave the backend.
 
 ```bash
 flutter run -d chrome \
@@ -62,7 +62,7 @@ flutter run -d chrome \
   --dart-define=USE_FUNCTIONS_EMULATOR=true
 ```
 
-Set `OPENSUBTITLES_API_KEY` and `GEMINI_API_KEY` in `story-pilot-server/functions/.env.storypilot-35945` (see server README).
+Set `GEMINI_API_KEY` in `story-pilot-server/functions/.env.storypilot-35945` (see server README).
 
 Without `USE_FIREBASE_AI`, Ask uses the local stub (offline rules).
 
@@ -83,7 +83,7 @@ No extra dart-defines are needed; web config is in `lib/firebase_options.dart`.
 
 1. Search title (TMDB)
 2. View detail + cast
-3. Open scene → backend loads subtitles and returns duration
+3. Open scene → backend returns duration and scene metadata
 4. Set timestamp → scene context + AI brief
 5. Ask questions (stub or Gemini)
 
@@ -123,7 +123,7 @@ In **Settings → Secrets and variables → Actions**, add:
 | `FIREBASE_SERVICE_ACCOUNT` | Full JSON from Firebase Console → Project settings → Service accounts → Generate new private key |
 | `TMDB_API_KEY` | TMDB API key |
 
-Production web uses **Firebase Callable Functions** for subtitles and AI via [story-pilot-server](../story-pilot-server/). OpenSubtitles and Gemini API keys live only on the server. For local dev against the emulator, add `--dart-define=USE_FUNCTIONS_EMULATOR=true` and run `firebase emulators:start --only functions,firestore,storage` in `story-pilot-server/`.
+Production web uses **Firebase Callable Functions** for scene context and AI via [story-pilot-server](../story-pilot-server/). For local dev against the emulator, add `--dart-define=USE_FUNCTIONS_EMULATOR=true` and run `firebase emulators:start --only functions,firestore,storage` in `story-pilot-server/`.
 
 The service account needs at least **Firebase Hosting Admin** (or **Firebase Admin** for simplicity).
 

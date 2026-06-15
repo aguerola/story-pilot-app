@@ -173,7 +173,7 @@ class _EpisodeTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final subtitleParts = <String>[
+    final metaParts = <String>[
       if (episode.airDate != null && episode.airDate!.isNotEmpty)
         episode.airDate!,
       if (episode.runtimeMinutes != null && episode.runtimeMinutes! > 0)
@@ -210,9 +210,9 @@ class _EpisodeTile extends StatelessWidget {
         maxLines: 2,
         overflow: TextOverflow.ellipsis,
       ),
-      subtitle: subtitleParts.isEmpty
+      subtitle: metaParts.isEmpty
           ? null
-          : Text(subtitleParts.join(' · ')),
+          : Text(metaParts.join(' · ')),
       trailing: const Icon(Icons.chevron_right),
     );
   }
