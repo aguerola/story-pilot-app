@@ -94,7 +94,13 @@ Production URLs:
 - https://storypilot-35945.web.app
 - https://storypilot-35945.firebaseapp.com
 
-Every push to `main` runs [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml): tests → `flutter build web --release` → Firebase Hosting deploy.
+Every push to `main` runs [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml): tests → `flutter build web --release` → Firebase Hosting deploy to **live**.
+
+Every PR to `main` runs [`.github/workflows/firebase-preview.yml`](.github/workflows/firebase-preview.yml): tests → `flutter build web --release` → deploy to a temporary **Preview Channel** with ID `pr-<PR_NUMBER>`.
+
+- Preview URLs are posted automatically as a PR comment by the Firebase action.
+- The preview channel expires after `7d`.
+- When a PR is closed, the workflow deletes its preview channel.
 
 ### GitHub Secrets (one-time)
 
