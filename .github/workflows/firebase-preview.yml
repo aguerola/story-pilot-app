@@ -35,8 +35,7 @@ jobs:
 
       - run: |
           flutter build web --release \
-            --dart-define=TMDB_API_KEY=${{ secrets.TMDB_API_KEY }} \
-            --dart-define=USE_FIREBASE_AI=true
+            --dart-define=TMDB_API_KEY=${{ secrets.TMDB_API_KEY }}
         if: github.event.action != 'closed'
 
       - uses: FirebaseExtended/action-hosting-deploy@v0

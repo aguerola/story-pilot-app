@@ -1,6 +1,5 @@
 class Env {
   static const tmdbApiKey = String.fromEnvironment('TMDB_API_KEY');
-  static const useFirebaseAi = bool.fromEnvironment('USE_FIREBASE_AI');
   static const corsProxy = String.fromEnvironment(
     'CORS_PROXY',
     defaultValue: '',

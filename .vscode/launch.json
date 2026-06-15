@@ -2,17 +2,7 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Story Pilot — Web (stub)",
-      "request": "launch",
-      "type": "dart",
-      "program": "lib/main.dart",
-      "deviceId": "chrome",
-      "toolArgs": [
-        "--web-port=8473"
-      ]
-    },
-    {
-      "name": "Story Pilot — Web (dev)",
+      "name": "Story Pilot — Web",
       "request": "launch",
       "type": "dart",
       "program": "lib/main.dart",
@@ -23,7 +13,7 @@
       ]
     },
     {
-      "name": "Story Pilot — Web (Firebase AI)",
+      "name": "Story Pilot — Web (emulator)",
       "request": "launch",
       "type": "dart",
       "program": "lib/main.dart",
@@ -31,7 +21,6 @@
       "toolArgs": [
         "--web-port=8473",
         "--dart-define=TMDB_API_KEY=58c65e7650a26f5fea3317cb96aeb1f6",
-        "--dart-define=USE_FIREBASE_AI=true",
         "--dart-define=USE_FUNCTIONS_EMULATOR=true"
       ]
     }

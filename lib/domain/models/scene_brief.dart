@@ -21,7 +21,7 @@ class SceneBrief extends Equatable {
   /// Scene-specific questions the viewer might want to ask.
   final List<String> questions;
 
-  /// Token usage + estimated cost for this call (null for the offline stub).
+  /// Token usage + estimated cost for this call (null when unavailable).
   final AiUsage? usage;
 
   SceneBrief copyWith({AiUsage? usage}) => SceneBrief(

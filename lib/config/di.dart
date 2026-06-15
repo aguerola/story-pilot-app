@@ -1,7 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:storypilot/config/env.dart';
 import 'package:storypilot/data/repositories/ask_repository.dart';
 import 'package:storypilot/data/repositories/scene_repository.dart';
 import 'package:storypilot/data/repositories/title_repository.dart';
@@ -12,7 +11,6 @@ import 'package:storypilot/data/services/ask_service.dart';
 import 'package:storypilot/data/services/ask_functions_client.dart';
 import 'package:storypilot/data/services/callable_ask_service.dart';
 import 'package:storypilot/data/services/local_cache_service.dart';
-import 'package:storypilot/data/services/local_stub_ask_service.dart';
 import 'package:storypilot/data/services/scene_functions_client.dart';
 import 'package:storypilot/ui/ask/bloc/ask_bloc.dart';
 import 'package:storypilot/data/services/settings_service.dart';
@@ -63,7 +61,12 @@ Future<void> configureDependencies() async {
     ..registerLazySingleton(
       () => BrowseHistoryService(getIt<SharedPreferences>()),
     )
-    ..registerLazySingleton<AskService>(_createAskService)
+    ..registerLazySingleton<AskService>(
+      () => CallableAskService(
+        client: FirebaseAskFunctionsClient(),
+        session: getIt<TitleSessionHolder>(),
+      ),
+    )
     ..registerLazySingleton(
       () => TitleRepository(getIt<TmdbService>(), getIt<LocalCacheService>()),
     )
@@ -99,14 +102,4 @@ Future<void> configureDependencies() async {
         getIt<UsageLimitService>(),
       ),
     );
-}
-
-AskService _createAskService() {
-  if (Env.useFirebaseAi) {
-    return CallableAskService(
-      client: FirebaseAskFunctionsClient(),
-      session: getIt<TitleSessionHolder>(),
-    );
-  }
-  return LocalStubAskService();
 }

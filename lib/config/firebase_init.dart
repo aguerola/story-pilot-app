@@ -17,7 +17,7 @@ Future<void> initializeFirebase() async {
     }
   } catch (error, stackTrace) {
     developer.log(
-      'Firebase init failed — Ask will fall back to stub',
+      'Firebase init failed — Cloud Functions unavailable',
       name: 'FirebaseInit',
       error: error,
       stackTrace: stackTrace,

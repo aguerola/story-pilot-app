@@ -3,7 +3,6 @@ import 'dart:developer' as developer;
 import 'package:storypilot/config/gemini_model.dart';
 import 'package:storypilot/data/services/ask_functions_client.dart';
 import 'package:storypilot/data/services/ask_service.dart';
-import 'package:storypilot/data/services/local_stub_ask_service.dart';
 import 'package:storypilot/data/services/title_session_holder.dart';
 import 'package:storypilot/domain/failure.dart';
 import 'package:storypilot/domain/models/ai_usage.dart';
@@ -18,14 +17,11 @@ class CallableAskService implements AskService {
   CallableAskService({
     required AskFunctionsClient client,
     required TitleSessionHolder session,
-    LocalStubAskService? fallback,
   })  : _client = client,
-        _session = session,
-        _fallback = fallback ?? LocalStubAskService();
+        _session = session;
 
   final AskFunctionsClient _client;
   final TitleSessionHolder _session;
-  final LocalStubAskService _fallback;
 
   @override
   Future<Result<SceneBrief>> brief({
@@ -35,7 +31,7 @@ class CallableAskService implements AskService {
   }) async {
     final title = _session.titleDetail;
     if (title == null) {
-      return _fallback.brief(context: context, cast: cast, model: model);
+      return const Error(NotFoundFailure('Title not available'));
     }
 
     try {
@@ -56,7 +52,7 @@ class CallableAskService implements AskService {
 
       final summary = (data['summary'] as String?)?.trim() ?? '';
       if (summary.isEmpty) {
-        return _fallback.brief(context: context, cast: cast, model: model);
+        return const Error(ServerFailure('Empty response from AI'));
       }
 
       return Success(
@@ -69,12 +65,12 @@ class CallableAskService implements AskService {
       );
     } catch (error, stackTrace) {
       developer.log(
-        'brief generation failed, using fallback',
+        'brief generation failed',
         name: 'CallableAskService',
         error: error,
         stackTrace: stackTrace,
       );
-      return _fallback.brief(context: context, cast: cast, model: model);
+      return Error(_mapError(error));
     }
   }
 
@@ -91,13 +87,13 @@ class CallableAskService implements AskService {
         model: model,
       );
     } catch (error, stackTrace) {
-      return _stubFallback(
-        context: context,
-        question: question,
-        model: model,
+      developer.log(
+        'sceneAsk failed',
+        name: 'CallableAskService',
         error: error,
         stackTrace: stackTrace,
       );
+      return Error(_mapError(error));
     }
   }
 
@@ -129,7 +125,7 @@ class CallableAskService implements AskService {
         'sceneAsk returned empty text',
         name: 'CallableAskService',
       );
-      return const Error(ServerFailure('Empty response from Gemini'));
+      return const Error(ServerFailure('Empty response from AI'));
     }
 
     return Success(
@@ -146,35 +142,12 @@ class CallableAskService implements AskService {
     );
   }
 
-  Future<Result<SceneAnswer>> _stubFallback({
-    required SceneContext context,
-    required String question,
-    required GeminiModel model,
-    required Object error,
-    required StackTrace stackTrace,
-  }) async {
-    developer.log(
-      'sceneAsk failed, using fallback',
-      name: 'CallableAskService',
-      error: error,
-      stackTrace: stackTrace,
-    );
-    final fallback = await _fallback.ask(
-      context: context,
-      question: question,
-      model: model,
-    );
-    if (fallback is Success<SceneAnswer>) {
-      return Success(
-        SceneAnswer(
-          question: question,
-          answer:
-              '${fallback.data.answer}\n\n(Respuesta de respaldo: AI no disponible)',
-          sources: fallback.data.sources,
-        ),
-      );
+  Failure _mapError(Object error) {
+    final message = error.toString();
+    if (message.contains('unauthenticated') || message.contains('permission')) {
+      return AuthRequiredFailure(message);
     }
-    return const Error(NetworkFailure('AI unavailable'));
+    return NetworkFailure(message);
   }
 
   static List<String> _stringList(Object? value) {
