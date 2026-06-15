@@ -41,16 +41,28 @@ Optional CORS proxy for web development:
 --dart-define=CORS_PROXY=https://corsproxy.io/?url=
 ```
 
-### Firebase AI (optional, phase 5b)
+### AI via Cloud Functions (optional)
+
+Scene brief and Q&A call **`sceneBrief`** and **`sceneAsk`** on [story-pilot-server](../story-pilot-server/) (Gemini runs server-side; the API key never leaves the backend).
 
 ```bash
 flutter run -d chrome \
-  --dart-define=USE_FIREBASE_AI=true \
-  --dart-define=FIREBASE_API_KEY=... \
-  --dart-define=FIREBASE_APP_ID=... \
-  --dart-define=FIREBASE_MESSAGING_SENDER_ID=... \
-  --dart-define=FIREBASE_PROJECT_ID=...
+  --dart-define=USE_FIREBASE_AI=true
 ```
+
+For local development against the Functions emulator:
+
+```bash
+# Terminal 1 (story-pilot-server/)
+firebase emulators:start --only functions --project storypilot-35945
+
+# Terminal 2 (story-pilot-app/)
+flutter run -d chrome \
+  --dart-define=USE_FIREBASE_AI=true \
+  --dart-define=USE_FUNCTIONS_EMULATOR=true
+```
+
+Set `GEMINI_API_KEY` in `story-pilot-server/functions/.env.storypilot-35945` (see server README).
 
 Without `USE_FIREBASE_AI`, Ask uses the local stub (offline rules).
 
@@ -111,7 +123,7 @@ In **Settings → Secrets and variables → Actions**, add:
 | `FIREBASE_SERVICE_ACCOUNT` | Full JSON from Firebase Console → Project settings → Service accounts → Generate new private key |
 | `TMDB_API_KEY` | TMDB API key |
 
-Production web uses **Firebase Callable Functions** (`cloud_functions` SDK) for subtitles via [story-pilot-server](../story-pilot-server/). The OpenSubtitles API key lives only on the server. For local web dev against the emulator, add `--dart-define=USE_FUNCTIONS_EMULATOR=true` and run `firebase emulators:start --only functions` in `story-pilot-server/`.
+Production web uses **Firebase Callable Functions** (`cloud_functions` SDK) for subtitles and AI via [story-pilot-server](../story-pilot-server/). OpenSubtitles and Gemini API keys live only on the server. For local web dev against the emulator, add `--dart-define=USE_FUNCTIONS_EMULATOR=true` and run `firebase emulators:start --only functions` in `story-pilot-server/`.
 
 `OPENSUBTITLES_API_KEY` is only needed for local native/direct mode (non-web).
 

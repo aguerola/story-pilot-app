@@ -1,11 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:storypilot/data/services/firebase_ai_ask_service.dart';
 import 'package:storypilot/domain/models/scene_answer.dart';
 import 'package:storypilot/domain/models/scene_context.dart';
 
 void main() {
-  test('buildAskPromptContent orders context for caching and includes question',
-      () {
+  test('toAskPayload includes only anti-spoiler fields', () {
     const context = SceneContext(
       timestampMs: 3661000,
       sceneBeforeSeconds: 120,
@@ -19,18 +17,15 @@ void main() {
       characters: [],
     );
 
-    final content = buildAskPromptContent(context, '¿Qué pasa al final?');
+    final payload = context.toAskPayload();
 
-    expect(content.indexOf('Título: Matrix (1999)'), lessThan(content.indexOf('Contexto previo')));
-    expect(content.indexOf('Contexto previo'), lessThan(content.indexOf('Inicio\nMitad')));
-    expect(content.indexOf('Momento seleccionado: 01:01:01'), lessThan(content.indexOf('Pregunta:')));
-    expect(content.trim().endsWith('¿Qué pasa al final?'), isTrue);
-    expect(content, contains('Inicio\nMitad'));
-    // Post-moment dialogue must never be sent to the model (anti-spoiler).
-    expect(content, isNot(contains('Justo después')));
-    expect(content, isNot(contains('Diálogo inmediatamente posterior')));
-    expect(content, contains('Personajes detectados automáticamente'));
-    expect(content, isNot(contains('Escena seleccionada')));
+    expect(payload['timestampMs'], 3661000);
+    expect(payload['priorDialogueText'], 'Inicio\nMitad');
+    expect(payload['titleLabel'], 'Matrix (1999)');
+    expect(payload.containsKey('followingDialogueText'), isFalse);
+    expect(payload.containsKey('dialogueText'), isFalse);
+    expect(payload.containsKey('askDialogueText'), isFalse);
+    expect(payload['priorDialogueText'], isNot(contains('Justo después')));
   });
 
   test('SceneAnswer tokenUsageLabel formats usage counts', () {

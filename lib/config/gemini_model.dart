@@ -1,4 +1,4 @@
-/// Supported Gemini models for Firebase AI.
+/// Supported Gemini models for scene AI (server-side via Cloud Functions).
 /// Source: https://ai.google.dev/gemini-api/docs/pricing (Standard tier, paid)
 enum GeminiModel {
   flashLite31(

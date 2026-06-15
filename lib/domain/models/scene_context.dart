@@ -46,6 +46,28 @@ class SceneContext extends Equatable {
   String get sceneWindowLabel =>
       '${sceneBeforeSeconds ~/ 60} min antes → ${sceneAfterSeconds}s después';
 
+  /// Payload for Cloud Functions AI callables (anti-spoiler: no post-moment dialogue).
+  Map<String, dynamic> toAskPayload() {
+    final payload = <String, dynamic>{
+      'timestampMs': timestampMs,
+      'priorDialogueText': priorDialogueText,
+    };
+    if (titleLabel != null) {
+      payload['titleLabel'] = titleLabel;
+    }
+    final activeText = activeLine?.text.trim();
+    if (activeText != null && activeText.isNotEmpty) {
+      payload['activeLine'] = {'text': activeText};
+    }
+    if (characters.isNotEmpty) {
+      payload['characters'] = characters
+          .map((c) => {'characterName': c.castMember.characterName})
+          .where((entry) => (entry['characterName'] as String).isNotEmpty)
+          .toList();
+    }
+    return payload;
+  }
+
   @override
   List<Object?> get props => [
         timestampMs,

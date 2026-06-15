@@ -10,7 +10,8 @@ import 'package:storypilot/data/services/auth_service.dart';
 import 'package:storypilot/data/services/browse_history_service.dart';
 import 'package:storypilot/data/services/usage_limit_service.dart';
 import 'package:storypilot/data/services/ask_service.dart';
-import 'package:storypilot/data/services/firebase_ai_ask_service.dart';
+import 'package:storypilot/data/services/ask_functions_client.dart';
+import 'package:storypilot/data/services/callable_ask_service.dart';
 import 'package:storypilot/data/services/local_cache_service.dart';
 import 'package:storypilot/data/services/local_stub_ask_service.dart';
 import 'package:storypilot/data/services/open_subtitles_service.dart';
@@ -123,7 +124,9 @@ Future<void> configureDependencies() async {
 
 AskService _createAskService() {
   if (Env.useFirebaseAi) {
-    return FirebaseAiAskService();
+    return CallableAskService(
+      client: FirebaseAskFunctionsClient(),
+    );
   }
   return LocalStubAskService();
 }
