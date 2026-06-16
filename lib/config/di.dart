@@ -91,6 +91,7 @@ Future<void> configureDependencies() async {
     ..registerFactory(
       () => SceneBloc(
         getIt<SceneRepository>(),
+        getIt<TitleRepository>(),
         getIt<TitleSessionHolder>(),
       ),
     )

@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:storypilot/data/services/tmdb_service.dart';
+import 'package:storypilot/domain/models/cast_member.dart';
 import 'package:storypilot/domain/models/crew_member.dart';
 import 'package:storypilot/domain/models/episode.dart';
 import 'package:storypilot/domain/models/media_type.dart';
@@ -406,6 +407,96 @@ void main() {
       expect(episodes.first.runtimeMinutes, 58);
       expect(episodes[1].name, "Cat's in the Bag...");
       expect(episodes[1].stillUrl, isNull);
+    });
+  });
+
+  group('fetchEpisodeCredits', () {
+    test('maps cast and guest_stars ordered by billing order', () async {
+      when(
+        () => dio.get<Map<String, dynamic>>(
+          any(),
+          queryParameters: any(named: 'queryParameters'),
+        ),
+      ).thenAnswer(
+        (_) async => Response(
+          data: {
+            'cast': [
+              {
+                'id': 2,
+                'name': 'Sean Bean',
+                'character': 'Ned Stark',
+                'order': 1,
+                'profile_path': '/ned.jpg',
+              },
+              {
+                'id': 1,
+                'name': 'Peter Dinklage',
+                'character': 'Tyrion Lannister',
+                'order': 0,
+                'profile_path': '/tyrion.jpg',
+              },
+            ],
+            'guest_stars': [
+              {
+                'id': 3,
+                'name': 'Jason Momoa',
+                'character': 'Khal Drogo',
+                'order': 5,
+                'profile_path': '/drogo.jpg',
+              },
+            ],
+          },
+          requestOptions: RequestOptions(
+            path: '/tv/1396/season/1/episode/1/credits',
+          ),
+        ),
+      );
+
+      final result = await service.fetchEpisodeCredits(1396, 1, 1);
+
+      expect(result, isA<Success<List<CastMember>>>());
+      final cast = (result as Success<List<CastMember>>).data;
+      expect(cast, hasLength(3));
+      expect(cast.first.characterName, 'Tyrion Lannister');
+      expect(cast[1].characterName, 'Ned Stark');
+      expect(cast.last.characterName, 'Khal Drogo');
+    });
+
+    test('deduplicates the same actor in cast and guest_stars', () async {
+      when(
+        () => dio.get<Map<String, dynamic>>(
+          any(),
+          queryParameters: any(named: 'queryParameters'),
+        ),
+      ).thenAnswer(
+        (_) async => Response(
+          data: {
+            'cast': [
+              {
+                'id': 1,
+                'name': 'Peter Dinklage',
+                'character': 'Tyrion Lannister',
+                'order': 0,
+              },
+            ],
+            'guest_stars': [
+              {
+                'id': 1,
+                'name': 'Peter Dinklage',
+                'character': 'Tyrion Lannister',
+                'order': 0,
+              },
+            ],
+          },
+          requestOptions: RequestOptions(
+            path: '/tv/1396/season/1/episode/1/credits',
+          ),
+        ),
+      );
+
+      final result = await service.fetchEpisodeCredits(1396, 1, 1);
+
+      expect((result as Success<List<CastMember>>).data, hasLength(1));
     });
   });
 }

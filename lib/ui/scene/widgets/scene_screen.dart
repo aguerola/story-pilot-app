@@ -185,7 +185,7 @@ class _SceneViewState extends State<_SceneView> {
           // automatically; never counts toward the daily question quota.
           context
               .read<SceneBriefCubit>()
-              .load(state.context, getIt<TitleSessionHolder>().cast);
+              .load(state.context, getIt<TitleSessionHolder>().sceneCast);
         }
       },
       child: Scaffold(

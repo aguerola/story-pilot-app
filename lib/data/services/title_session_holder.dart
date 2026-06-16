@@ -12,6 +12,8 @@ class TitleSessionHolder {
 
   List<CastMember> get cast => titleDetail?.cast ?? const [];
 
+  List<CastMember> sceneCast = const [];
+
   void setTitleDetail(TitleDetail detail) {
     titleDetail = detail;
     if (detail.summary.mediaType == MediaType.movie) {
@@ -27,6 +29,10 @@ class TitleSessionHolder {
     selectedEpisode = selection;
   }
 
+  void setSceneCast(List<CastMember> cast) {
+    sceneCast = cast;
+  }
+
   void setDurationMs(int value) {
     durationMs = value;
   }
@@ -34,6 +40,7 @@ class TitleSessionHolder {
   void clearPlaybackState() {
     durationMs = null;
     sceneContext = null;
+    sceneCast = const [];
   }
 
   void clear() {
@@ -41,6 +48,7 @@ class TitleSessionHolder {
     sceneContext = null;
     selectedEpisode = null;
     durationMs = null;
+    sceneCast = const [];
   }
 
   String titleKey(int id, MediaType type) => '${type.name}_$id';

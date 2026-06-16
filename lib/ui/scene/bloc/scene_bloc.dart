@@ -1,8 +1,11 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:storypilot/config/brief_cast.dart';
 import 'package:storypilot/data/repositories/scene_repository.dart';
+import 'package:storypilot/data/repositories/title_repository.dart';
 import 'package:storypilot/data/services/title_session_holder.dart';
 import 'package:storypilot/domain/failure.dart';
 import 'package:storypilot/domain/models/media_type.dart';
+import 'package:storypilot/domain/models/title_detail.dart';
 import 'package:storypilot/domain/models/tv_episode_selection.dart';
 import 'package:storypilot/domain/result.dart';
 import 'package:storypilot/ui/scene/bloc/scene_event.dart';
@@ -10,7 +13,8 @@ import 'package:storypilot/ui/scene/bloc/scene_state.dart';
 import 'package:storypilot/utils/bloc_debounce.dart';
 
 class SceneBloc extends Bloc<SceneEvent, SceneState> {
-  SceneBloc(this._repository, this._session) : super(const SceneInitial()) {
+  SceneBloc(this._repository, this._titles, this._session)
+      : super(const SceneInitial()) {
     on<SceneStarted>(_onStarted);
     on<EpisodeSelected>(_onEpisodeSelected);
     on<TimestampChanged>(
@@ -20,6 +24,7 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> {
   }
 
   final SceneRepository _repository;
+  final TitleRepository _titles;
   final TitleSessionHolder _session;
 
   Future<void> _onStarted(
@@ -99,6 +104,15 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> {
     required Emitter<SceneState> emit,
   }) async {
     emit(const SceneLoading());
+
+    final detail = _session.titleDetail;
+    if (detail == null) {
+      emit(const SceneFailure(NotFoundFailure('Title not available')));
+      return;
+    }
+
+    await _loadSceneCast(detail: detail, episode: episode);
+
     final prepareResult = await _repository.prepareScene(
       tmdbId: tmdbId,
       mediaType: mediaType,
@@ -144,6 +158,22 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> {
         emit(SceneLoaded(data));
       case Error(:final failure):
         emit(SceneFailure(failure));
+    }
+  }
+
+  Future<void> _loadSceneCast({
+    required TitleDetail detail,
+    required TvEpisodeSelection? episode,
+  }) async {
+    final result = await _titles.resolveSceneCast(
+      detail: detail,
+      episode: episode,
+    );
+    switch (result) {
+      case Success(:final data):
+        _session.setSceneCast(data);
+      case Error():
+        _session.setSceneCast(detail.cast.take(maxBriefCast).toList());
     }
   }
 }

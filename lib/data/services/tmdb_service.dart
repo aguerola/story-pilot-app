@@ -302,6 +302,29 @@ class TmdbService {
     }
   }
 
+  Future<Result<List<CastMember>>> fetchEpisodeCredits(
+    int tvId,
+    int seasonNumber,
+    int episodeNumber,
+  ) async {
+    if (!_hasTmdbKey) {
+      return const Error(NetworkFailure('TMDB_API_KEY not configured'));
+    }
+    try {
+      final response = await _dio.get<Map<String, dynamic>>(
+        Env.wrapUrl(
+          '${Env.tmdbBaseUrl}/tv/$tvId/season/$seasonNumber/episode/$episodeNumber/credits',
+        ),
+        queryParameters: {'api_key': _apiKey},
+      );
+      return Success(_mapEpisodeCredits(response.data ?? {}));
+    } on DioException catch (e) {
+      return Error(_mapDioError(e));
+    } catch (e) {
+      return Error(ServerFailure(e.toString()));
+    }
+  }
+
   List<Episode> _mapEpisodes(List<dynamic>? episodeList) {
     return episodeList
             ?.whereType<Map<String, dynamic>>()
@@ -336,6 +359,38 @@ class TmdbService {
             )
             .toList() ??
         [];
+  }
+
+  List<CastMember> _mapEpisodeCredits(Map<String, dynamic> credits) {
+    final entries = <Map<String, dynamic>>[
+      ...(credits['cast'] as List<dynamic>? ?? []).whereType<Map<String, dynamic>>(),
+      ...(credits['guest_stars'] as List<dynamic>? ?? [])
+          .whereType<Map<String, dynamic>>(),
+    ];
+    final seen = <int>{};
+    final result = <CastMember>[];
+
+    for (final entry in entries) {
+      final id = entry['id'] as int? ?? 0;
+      if (id == 0 || !seen.add(id)) continue;
+
+      final name = entry['name'] as String? ?? '';
+      final characterName = (entry['character'] as String? ?? '').trim();
+      if (name.isEmpty || characterName.isEmpty) continue;
+
+      result.add(
+        CastMember(
+          id: id,
+          name: name,
+          characterName: characterName,
+          profileUrl: _posterUrl(entry['profile_path'] as String?),
+          billingOrder: entry['order'] as int? ?? 999,
+        ),
+      );
+    }
+
+    result.sort((a, b) => a.billingOrder.compareTo(b.billingOrder));
+    return result;
   }
 
   List<CastMember> _mapCast(Map<String, dynamic> credits, MediaType type) {

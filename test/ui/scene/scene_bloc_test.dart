@@ -2,8 +2,10 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:storypilot/data/repositories/scene_repository.dart';
+import 'package:storypilot/data/repositories/title_repository.dart';
 import 'package:storypilot/data/services/title_session_holder.dart';
 import 'package:storypilot/domain/failure.dart';
+import 'package:storypilot/domain/models/cast_member.dart';
 import 'package:storypilot/domain/models/media_type.dart';
 import 'package:storypilot/domain/models/scene_context.dart';
 import 'package:storypilot/domain/models/season.dart';
@@ -18,8 +20,11 @@ import 'package:storypilot/ui/scene/bloc/scene_state.dart';
 
 class MockSceneRepository extends Mock implements SceneRepository {}
 
+class MockTitleRepository extends Mock implements TitleRepository {}
+
 void main() {
   late MockSceneRepository repository;
+  late MockTitleRepository titles;
   late TitleSessionHolder session;
   late SceneBloc bloc;
 
@@ -38,10 +43,28 @@ void main() {
       seasonNumber: 1,
       episodeNumber: 1,
     ));
+    registerFallbackValue(
+      const TitleDetail(
+        summary: TitleSummary(
+          id: 0,
+          mediaType: MediaType.movie,
+          title: 'Fallback',
+        ),
+        overview: '',
+        cast: [],
+      ),
+    );
   });
 
   setUp(() {
     repository = MockSceneRepository();
+    titles = MockTitleRepository();
+    when(
+      () => titles.resolveSceneCast(
+        detail: any(named: 'detail'),
+        episode: any(named: 'episode'),
+      ),
+    ).thenAnswer((_) async => const Success(<CastMember>[]));
     session = TitleSessionHolder()
       ..setTitleDetail(
         TitleDetail(
@@ -55,7 +78,7 @@ void main() {
         ),
       )
       ..setDurationMs(5000);
-    bloc = SceneBloc(repository, session);
+    bloc = SceneBloc(repository, titles, session);
   });
 
   tearDown(() => bloc.close());
@@ -106,7 +129,7 @@ void main() {
           titleLabel: 'Matrix',
         ),
       ).thenAnswer((_) async => const Success(5000));
-      return SceneBloc(repository, session);
+      return SceneBloc(repository, titles, session);
     },
     act: (bloc) => bloc.add(
       const SceneStarted(tmdbId: 1, mediaType: MediaType.movie),
@@ -130,7 +153,7 @@ void main() {
       ).thenAnswer(
         (_) async => const Error(NotFoundFailure('Scene dialogue not available')),
       );
-      return SceneBloc(repository, session);
+      return SceneBloc(repository, titles, session);
     },
     act: (bloc) => bloc.add(
       const SceneStarted(tmdbId: 1, mediaType: MediaType.movie),
@@ -164,7 +187,7 @@ void main() {
           ),
         )
         ..durationMs = null;
-      return SceneBloc(repository, session);
+      return SceneBloc(repository, titles, session);
     },
     act: (bloc) => bloc.add(
       const SceneStarted(tmdbId: 10, mediaType: MediaType.tv),
@@ -206,7 +229,7 @@ void main() {
           titleLabel: 'Breaking Bad',
         ),
       ).thenAnswer((_) async => const Success(3600000));
-      return SceneBloc(repository, session);
+      return SceneBloc(repository, titles, session);
     },
     act: (bloc) => bloc.add(
       const SceneStarted(
@@ -220,6 +243,84 @@ void main() {
       const SceneLoading(),
       const SceneAwaitingTimestamp(),
     ],
+  );
+
+  blocTest<SceneBloc, SceneState>(
+    'stores episode scene cast when preparing a TV episode',
+    build: () {
+      const episodeCast = [
+        CastMember(
+          id: 1,
+          name: 'Bryan Cranston',
+          characterName: 'Walter White',
+          billingOrder: 0,
+        ),
+      ];
+      session
+        ..setTitleDetail(
+          TitleDetail(
+            summary: const TitleSummary(
+              id: 10,
+              mediaType: MediaType.tv,
+              title: 'Breaking Bad',
+            ),
+            overview: '',
+            cast: const [
+              CastMember(
+                id: 99,
+                name: 'Series Regular',
+                characterName: 'Series Character',
+                billingOrder: 0,
+              ),
+            ],
+            seasons: const [
+              Season(
+                seasonNumber: 1,
+                name: 'Season 1',
+                episodeCount: 7,
+              ),
+            ],
+          ),
+        )
+        ..durationMs = null;
+      when(
+        () => titles.resolveSceneCast(
+          detail: any(named: 'detail'),
+          episode: const TvEpisodeSelection(
+            seasonNumber: 1,
+            episodeNumber: 3,
+          ),
+        ),
+      ).thenAnswer((_) async => const Success(episodeCast));
+      when(
+        () => repository.prepareScene(
+          tmdbId: 10,
+          mediaType: MediaType.tv,
+          episode: const TvEpisodeSelection(
+            seasonNumber: 1,
+            episodeNumber: 3,
+          ),
+          titleLabel: 'Breaking Bad',
+        ),
+      ).thenAnswer((_) async => const Success(3600000));
+      return SceneBloc(repository, titles, session);
+    },
+    act: (bloc) => bloc.add(
+      const SceneStarted(
+        tmdbId: 10,
+        mediaType: MediaType.tv,
+        seasonNumber: 1,
+        episodeNumber: 3,
+      ),
+    ),
+    expect: () => [
+      const SceneLoading(),
+      const SceneAwaitingTimestamp(),
+    ],
+    verify: (_) {
+      expect(session.sceneCast, hasLength(1));
+      expect(session.sceneCast.first.characterName, 'Walter White');
+    },
   );
 
   blocTest<SceneBloc, SceneState>(
@@ -256,7 +357,7 @@ void main() {
           titleLabel: 'Breaking Bad',
         ),
       ).thenAnswer((_) async => const Success(7200000));
-      return SceneBloc(repository, session);
+      return SceneBloc(repository, titles, session);
     },
     act: (bloc) => bloc.add(
       const SceneStarted(tmdbId: 27205, mediaType: MediaType.movie),

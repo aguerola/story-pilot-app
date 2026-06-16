@@ -1,0 +1,1 @@
+const maxBriefCast = 40;
