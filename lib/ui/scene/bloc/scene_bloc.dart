@@ -40,11 +40,10 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> {
     if (episode != null) {
       _session.setSelectedEpisode(episode);
     }
-    await _prepareAndMaybeLoadContext(
+    await _prepareScene(
       tmdbId: event.tmdbId,
       mediaType: mediaType,
       episode: episode,
-      timestampMs: event.initialTimestampMs,
       emit: emit,
     );
   }
@@ -61,11 +60,10 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> {
     );
     _session.setSelectedEpisode(episode);
     _session.clearPlaybackState();
-    await _prepareAndMaybeLoadContext(
+    await _prepareScene(
       tmdbId: _session.titleDetail?.summary.id ?? 0,
       mediaType: mediaType,
       episode: episode,
-      timestampMs: 0,
       emit: emit,
     );
   }
@@ -96,11 +94,10 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> {
     return _session.selectedEpisode;
   }
 
-  Future<void> _prepareAndMaybeLoadContext({
+  Future<void> _prepareScene({
     required int tmdbId,
     required MediaType mediaType,
     required TvEpisodeSelection? episode,
-    required int timestampMs,
     required Emitter<SceneState> emit,
   }) async {
     emit(const SceneLoading());
@@ -128,11 +125,7 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> {
         return;
     }
 
-    if (timestampMs > 0) {
-      await _loadContext(timestampMs, emit);
-    } else {
-      emit(const SceneAwaitingTimestamp());
-    }
+    emit(const SceneAwaitingTimestamp());
   }
 
   Future<void> _loadContext(int timestampMs, Emitter<SceneState> emit) async {

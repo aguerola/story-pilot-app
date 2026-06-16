@@ -87,14 +87,6 @@ void main() {
     'emits loaded when timestamp changes',
     build: () {
       when(
-        () => repository.prepareScene(
-          tmdbId: 1,
-          mediaType: MediaType.movie,
-          episode: any(named: 'episode'),
-          titleLabel: 'Matrix',
-        ),
-      ).thenAnswer((_) async => const Success(5000));
-      when(
         () => repository.getContext(
           tmdbId: 1,
           mediaType: MediaType.movie,
@@ -105,13 +97,8 @@ void main() {
       ).thenAnswer((_) async => const Success(context));
       return bloc;
     },
-    act: (bloc) => bloc.add(
-      const SceneStarted(
-        tmdbId: 1,
-        mediaType: MediaType.movie,
-        initialTimestampMs: 2000,
-      ),
-    ),
+    act: (bloc) => bloc.add(const TimestampChanged(2000)),
+    wait: const Duration(milliseconds: 400),
     expect: () => [
       const SceneLoading(),
       isA<SceneLoaded>(),

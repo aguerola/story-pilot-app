@@ -12,20 +12,18 @@ final class SceneStarted extends SceneEvent {
   const SceneStarted({
     required this.tmdbId,
     required this.mediaType,
-    this.initialTimestampMs = 0,
     this.seasonNumber,
     this.episodeNumber,
   });
 
   final int tmdbId;
   final MediaType mediaType;
-  final int initialTimestampMs;
   final int? seasonNumber;
   final int? episodeNumber;
 
   @override
   List<Object?> get props =>
-      [tmdbId, mediaType, initialTimestampMs, seasonNumber, episodeNumber];
+      [tmdbId, mediaType, seasonNumber, episodeNumber];
 }
 
 final class EpisodeSelected extends SceneEvent {
