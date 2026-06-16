@@ -1,5 +1,6 @@
-import 'package:dio/dio.dart';
+import 'package:cloud_functions/cloud_functions.dart' hide Result;
 import 'package:storypilot/config/env.dart';
+import 'package:storypilot/data/services/tmdb_functions_client.dart';
 import 'package:storypilot/domain/failure.dart';
 import 'package:storypilot/domain/models/cast_member.dart';
 import 'package:storypilot/domain/models/crew_member.dart';
@@ -11,12 +12,9 @@ import 'package:storypilot/domain/models/title_summary.dart';
 import 'package:storypilot/domain/result.dart';
 
 class TmdbService {
-  TmdbService(this._dio, {String? apiKey}) : _apiKey = apiKey ?? Env.tmdbApiKey;
+  TmdbService(this._client);
 
-  final Dio _dio;
-  final String _apiKey;
-
-  bool get _hasTmdbKey => _apiKey.isNotEmpty;
+  final TmdbFunctionsClient _client;
 
   static const _crewJobs = {
     'Director',
@@ -27,85 +25,60 @@ class TmdbService {
   };
 
   Future<Result<List<TitleSummary>>> fetchPopularMovies() async {
-    return _fetchPopularList('movie', MediaType.movie);
+    return _fetchPopularList(MediaType.movie);
   }
 
   Future<Result<List<TitleSummary>>> fetchPopularSeries() async {
-    return _fetchPopularList('tv', MediaType.tv);
+    return _fetchPopularList(MediaType.tv);
   }
 
   Future<Result<List<TitleSummary>>> _fetchPopularList(
-    String path,
     MediaType mediaType,
   ) async {
-    if (!_hasTmdbKey) {
-      return const Error(NetworkFailure('TMDB_API_KEY not configured'));
-    }
     try {
-      final response = await _dio.get<Map<String, dynamic>>(
-        Env.wrapUrl('${Env.tmdbBaseUrl}/$path/popular'),
-        queryParameters: {
-          'api_key': _apiKey,
-          'page': 1,
-        },
-      );
-      final results = response.data?['results'] as List<dynamic>? ?? [];
+      final data = await _client.call({
+        'op': mediaType == MediaType.movie ? 'popularMovies' : 'popularSeries',
+      });
+      final results = data['results'] as List<dynamic>? ?? [];
       final summaries = results
           .whereType<Map<String, dynamic>>()
           .map((json) => _mapListItem(json, mediaType))
           .toList();
       return Success(summaries);
-    } on DioException catch (e) {
-      return Error(_mapDioError(e));
+    } on FirebaseFunctionsException catch (e) {
+      return Error(_mapFunctionsError(e));
     } catch (e) {
       return Error(ServerFailure(e.toString()));
     }
   }
 
   Future<Result<List<TitleSummary>>> search(String query) async {
-    if (!_hasTmdbKey) {
-      return const Error(NetworkFailure('TMDB_API_KEY not configured'));
-    }
     try {
-      final response = await _dio.get<Map<String, dynamic>>(
-        Env.wrapUrl('${Env.tmdbBaseUrl}/search/multi'),
-        queryParameters: {
-          'api_key': _apiKey,
-          'query': query,
-          'include_adult': false,
-        },
-      );
-      final results = response.data?['results'] as List<dynamic>? ?? [];
+      final data = await _client.call({
+        'op': 'search',
+        'query': query,
+      });
+      final results = data['results'] as List<dynamic>? ?? [];
       final summaries = results
           .whereType<Map<String, dynamic>>()
           .where((r) => r['media_type'] == 'movie' || r['media_type'] == 'tv')
           .map(_mapSearchResult)
           .toList();
       return Success(summaries);
-    } on DioException catch (e) {
-      return Error(_mapDioError(e));
+    } on FirebaseFunctionsException catch (e) {
+      return Error(_mapFunctionsError(e));
     } catch (e) {
       return Error(ServerFailure(e.toString()));
     }
   }
 
   Future<Result<TitleDetail>> fetchDetail(int id, MediaType type) async {
-    if (!_hasTmdbKey) {
-      return const Error(NetworkFailure('TMDB_API_KEY not configured'));
-    }
     try {
-      final path = type == MediaType.movie ? 'movie' : 'tv';
-      final appendToResponse = type == MediaType.movie
-          ? 'credits,keywords,external_ids'
-          : 'aggregate_credits,keywords,external_ids';
-      final detailResponse = await _dio.get<Map<String, dynamic>>(
-        Env.wrapUrl('${Env.tmdbBaseUrl}/$path/$id'),
-        queryParameters: {
-          'api_key': _apiKey,
-          'append_to_response': appendToResponse,
-        },
-      );
-      final detail = detailResponse.data!;
+      final detail = await _client.call({
+        'op': 'detail',
+        'id': id,
+        'mediaType': type == MediaType.movie ? 'movie' : 'tv',
+      });
       final creditsKey =
           type == MediaType.movie ? 'credits' : 'aggregate_credits';
       final credits = detail[creditsKey] as Map<String, dynamic>? ?? {};
@@ -182,8 +155,8 @@ class TmdbService {
           keywords: keywords,
         ),
       );
-    } on DioException catch (e) {
-      return Error(_mapDioError(e));
+    } on FirebaseFunctionsException catch (e) {
+      return Error(_mapFunctionsError(e));
     } catch (e) {
       return Error(ServerFailure(e.toString()));
     }
@@ -285,18 +258,16 @@ class TmdbService {
     int tvId,
     int seasonNumber,
   ) async {
-    if (!_hasTmdbKey) {
-      return const Error(NetworkFailure('TMDB_API_KEY not configured'));
-    }
     try {
-      final response = await _dio.get<Map<String, dynamic>>(
-        Env.wrapUrl('${Env.tmdbBaseUrl}/tv/$tvId/season/$seasonNumber'),
-        queryParameters: {'api_key': _apiKey},
-      );
-      final episodes = _mapEpisodes(response.data?['episodes'] as List<dynamic>?);
+      final data = await _client.call({
+        'op': 'seasonEpisodes',
+        'tvId': tvId,
+        'seasonNumber': seasonNumber,
+      });
+      final episodes = _mapEpisodes(data['episodes'] as List<dynamic>?);
       return Success(episodes);
-    } on DioException catch (e) {
-      return Error(_mapDioError(e));
+    } on FirebaseFunctionsException catch (e) {
+      return Error(_mapFunctionsError(e));
     } catch (e) {
       return Error(ServerFailure(e.toString()));
     }
@@ -307,19 +278,16 @@ class TmdbService {
     int seasonNumber,
     int episodeNumber,
   ) async {
-    if (!_hasTmdbKey) {
-      return const Error(NetworkFailure('TMDB_API_KEY not configured'));
-    }
     try {
-      final response = await _dio.get<Map<String, dynamic>>(
-        Env.wrapUrl(
-          '${Env.tmdbBaseUrl}/tv/$tvId/season/$seasonNumber/episode/$episodeNumber/credits',
-        ),
-        queryParameters: {'api_key': _apiKey},
-      );
-      return Success(_mapEpisodeCredits(response.data ?? {}));
-    } on DioException catch (e) {
-      return Error(_mapDioError(e));
+      final data = await _client.call({
+        'op': 'episodeCredits',
+        'tvId': tvId,
+        'seasonNumber': seasonNumber,
+        'episodeNumber': episodeNumber,
+      });
+      return Success(_mapEpisodeCredits(data));
+    } on FirebaseFunctionsException catch (e) {
+      return Error(_mapFunctionsError(e));
     } catch (e) {
       return Error(ServerFailure(e.toString()));
     }
@@ -453,16 +421,21 @@ class TmdbService {
     return '${Env.tmdbImageBaseUrl}$path';
   }
 
-  Failure _mapDioError(DioException e) {
-    if (e.type == DioExceptionType.connectionTimeout ||
-        e.type == DioExceptionType.receiveTimeout ||
-        e.type == DioExceptionType.connectionError) {
+  Failure _mapFunctionsError(FirebaseFunctionsException e) {
+    if (e.code == 'unavailable') {
+      final message = e.message ?? '';
+      if (message.contains('404') || message.contains('(404)')) {
+        return const NotFoundFailure();
+      }
+      if (message.contains('timeout') || message.contains('network')) {
+        return const NetworkFailure();
+      }
+      return ServerFailure(message.isEmpty ? 'TMDB request failed' : message);
+    }
+    if (e.code == 'deadline-exceeded') {
       return const NetworkFailure();
     }
-    final status = e.response?.statusCode;
-    if (status == 404) return const NotFoundFailure();
-    if (status != null && status >= 500) return const ServerFailure();
-    return ServerFailure(e.message ?? 'Request failed');
+    return ServerFailure(e.message ?? 'TMDB request failed');
   }
 }
 

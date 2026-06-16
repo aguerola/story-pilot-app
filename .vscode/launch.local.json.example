@@ -1,10 +1,5 @@
 # Copia este archivo a launch.local.json e introduce tus API keys.
 # launch.local.json está en .gitignore — no se commitea.
 #
-# En Cursor: Run and Debug → selecciona la config local si la añades a launch.json,
-# o exporta las variables en tu shell (~/.zshrc):
-#
-#   export TMDB_API_KEY="..."
-#   export CORS_PROXY="https://corsproxy.io/?url="  # opcional, web dev
-#
-# Luego usa la config "Story Pilot — Web (dev)" del panel Run and Debug.
+# En Cursor: Run and Debug → selecciona la config local si la añades a launch.json.
+# TMDB metadata is fetched via Cloud Functions (story-pilot-server); no TMDB key in the app.

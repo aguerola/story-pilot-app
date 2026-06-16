@@ -1,6 +1,6 @@
-import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:storypilot/data/services/tmdb_functions_client.dart';
 import 'package:storypilot/data/services/tmdb_service.dart';
 import 'package:storypilot/domain/models/cast_member.dart';
 import 'package:storypilot/domain/models/crew_member.dart';
@@ -10,15 +10,15 @@ import 'package:storypilot/domain/models/title_detail.dart';
 import 'package:storypilot/domain/models/title_summary.dart';
 import 'package:storypilot/domain/result.dart';
 
-class MockDio extends Mock implements Dio {}
+class MockTmdbFunctionsClient extends Mock implements TmdbFunctionsClient {}
 
 void main() {
-  late MockDio dio;
+  late MockTmdbFunctionsClient client;
   late TmdbService service;
 
   setUp(() {
-    dio = MockDio();
-    service = TmdbService(dio, apiKey: 'test');
+    client = MockTmdbFunctionsClient();
+    service = TmdbService(client);
   });
 
   group('TitleDetail serialization', () {
@@ -232,16 +232,8 @@ void main() {
     };
 
     test('maps movie detail with genres crew and keywords', () async {
-      when(
-        () => dio.get<Map<String, dynamic>>(
-          any(),
-          queryParameters: any(named: 'queryParameters'),
-        ),
-      ).thenAnswer(
-        (_) async => Response(
-          data: movieFixture,
-          requestOptions: RequestOptions(path: '/movie/550'),
-        ),
+      when(() => client.call(any())).thenAnswer(
+        (_) async => Map<String, dynamic>.from(movieFixture),
       );
 
       final result = await service.fetchDetail(550, MediaType.movie);
@@ -259,19 +251,17 @@ void main() {
       expect(detail.cast.first.characterName, 'The Narrator');
       expect(detail.budget, 63000000);
       expect(detail.backdropUrl, contains('backdrop.jpg'));
+
+      final captured = verify(() => client.call(captureAny())).captured.single
+          as Map<String, dynamic>;
+      expect(captured['op'], 'detail');
+      expect(captured['id'], 550);
+      expect(captured['mediaType'], 'movie');
     });
 
     test('maps TV detail with seasons and aggregate credits', () async {
-      when(
-        () => dio.get<Map<String, dynamic>>(
-          any(),
-          queryParameters: any(named: 'queryParameters'),
-        ),
-      ).thenAnswer(
-        (_) async => Response(
-          data: tvFixture,
-          requestOptions: RequestOptions(path: '/tv/1396'),
-        ),
+      when(() => client.call(any())).thenAnswer(
+        (_) async => Map<String, dynamic>.from(tvFixture),
       );
 
       final result = await service.fetchDetail(1396, MediaType.tv);
@@ -294,25 +284,17 @@ void main() {
 
   group('fetchPopularMovies', () {
     test('maps movie list from popular endpoint', () async {
-      when(
-        () => dio.get<Map<String, dynamic>>(
-          any(),
-          queryParameters: any(named: 'queryParameters'),
-        ),
-      ).thenAnswer(
-        (_) async => Response(
-          data: {
-            'results': [
-              {
-                'id': 550,
-                'title': 'Fight Club',
-                'release_date': '1999-10-15',
-                'poster_path': '/poster.jpg',
-              },
-            ],
-          },
-          requestOptions: RequestOptions(path: '/movie/popular'),
-        ),
+      when(() => client.call(any())).thenAnswer(
+        (_) async => {
+          'results': [
+            {
+              'id': 550,
+              'title': 'Fight Club',
+              'release_date': '1999-10-15',
+              'poster_path': '/poster.jpg',
+            },
+          ],
+        },
       );
 
       final result = await service.fetchPopularMovies();
@@ -324,30 +306,26 @@ void main() {
       expect(movies.first.mediaType, MediaType.movie);
       expect(movies.first.year, 1999);
       expect(movies.first.posterUrl, contains('poster.jpg'));
+
+      final captured = verify(() => client.call(captureAny())).captured.single
+          as Map<String, dynamic>;
+      expect(captured['op'], 'popularMovies');
     });
   });
 
   group('fetchPopularSeries', () {
     test('maps TV list from popular endpoint', () async {
-      when(
-        () => dio.get<Map<String, dynamic>>(
-          any(),
-          queryParameters: any(named: 'queryParameters'),
-        ),
-      ).thenAnswer(
-        (_) async => Response(
-          data: {
-            'results': [
-              {
-                'id': 1396,
-                'name': 'Breaking Bad',
-                'first_air_date': '2008-01-20',
-                'poster_path': '/bb.jpg',
-              },
-            ],
-          },
-          requestOptions: RequestOptions(path: '/tv/popular'),
-        ),
+      when(() => client.call(any())).thenAnswer(
+        (_) async => {
+          'results': [
+            {
+              'id': 1396,
+              'name': 'Breaking Bad',
+              'first_air_date': '2008-01-20',
+              'poster_path': '/bb.jpg',
+            },
+          ],
+        },
       );
 
       final result = await service.fetchPopularSeries();
@@ -358,40 +336,36 @@ void main() {
       expect(series.first.title, 'Breaking Bad');
       expect(series.first.mediaType, MediaType.tv);
       expect(series.first.year, 2008);
+
+      final captured = verify(() => client.call(captureAny())).captured.single
+          as Map<String, dynamic>;
+      expect(captured['op'], 'popularSeries');
     });
   });
 
   group('fetchSeasonEpisodes', () {
     test('maps episode list from season detail', () async {
-      when(
-        () => dio.get<Map<String, dynamic>>(
-          any(),
-          queryParameters: any(named: 'queryParameters'),
-        ),
-      ).thenAnswer(
-        (_) async => Response(
-          data: {
-            'episodes': [
-              {
-                'episode_number': 1,
-                'name': 'Pilot',
-                'overview': 'First episode.',
-                'air_date': '2008-01-20',
-                'still_path': '/still.jpg',
-                'runtime': 58,
-              },
-              {
-                'episode_number': 2,
-                'name': "Cat's in the Bag...",
-                'overview': '',
-                'air_date': '2008-01-27',
-                'still_path': null,
-                'runtime': 48,
-              },
-            ],
-          },
-          requestOptions: RequestOptions(path: '/tv/1396/season/1'),
-        ),
+      when(() => client.call(any())).thenAnswer(
+        (_) async => {
+          'episodes': [
+            {
+              'episode_number': 1,
+              'name': 'Pilot',
+              'overview': 'First episode.',
+              'air_date': '2008-01-20',
+              'still_path': '/still.jpg',
+              'runtime': 58,
+            },
+            {
+              'episode_number': 2,
+              'name': "Cat's in the Bag...",
+              'overview': '',
+              'air_date': '2008-01-27',
+              'still_path': null,
+              'runtime': 48,
+            },
+          ],
+        },
       );
 
       final result = await service.fetchSeasonEpisodes(1396, 1);
@@ -412,44 +386,34 @@ void main() {
 
   group('fetchEpisodeCredits', () {
     test('maps cast and guest_stars ordered by billing order', () async {
-      when(
-        () => dio.get<Map<String, dynamic>>(
-          any(),
-          queryParameters: any(named: 'queryParameters'),
-        ),
-      ).thenAnswer(
-        (_) async => Response(
-          data: {
-            'cast': [
-              {
-                'id': 2,
-                'name': 'Sean Bean',
-                'character': 'Ned Stark',
-                'order': 1,
-                'profile_path': '/ned.jpg',
-              },
-              {
-                'id': 1,
-                'name': 'Peter Dinklage',
-                'character': 'Tyrion Lannister',
-                'order': 0,
-                'profile_path': '/tyrion.jpg',
-              },
-            ],
-            'guest_stars': [
-              {
-                'id': 3,
-                'name': 'Jason Momoa',
-                'character': 'Khal Drogo',
-                'order': 5,
-                'profile_path': '/drogo.jpg',
-              },
-            ],
-          },
-          requestOptions: RequestOptions(
-            path: '/tv/1396/season/1/episode/1/credits',
-          ),
-        ),
+      when(() => client.call(any())).thenAnswer(
+        (_) async => {
+          'cast': [
+            {
+              'id': 2,
+              'name': 'Sean Bean',
+              'character': 'Ned Stark',
+              'order': 1,
+              'profile_path': '/ned.jpg',
+            },
+            {
+              'id': 1,
+              'name': 'Peter Dinklage',
+              'character': 'Tyrion Lannister',
+              'order': 0,
+              'profile_path': '/tyrion.jpg',
+            },
+          ],
+          'guest_stars': [
+            {
+              'id': 3,
+              'name': 'Jason Momoa',
+              'character': 'Khal Drogo',
+              'order': 5,
+              'profile_path': '/drogo.jpg',
+            },
+          ],
+        },
       );
 
       final result = await service.fetchEpisodeCredits(1396, 1, 1);
@@ -463,35 +427,25 @@ void main() {
     });
 
     test('deduplicates the same actor in cast and guest_stars', () async {
-      when(
-        () => dio.get<Map<String, dynamic>>(
-          any(),
-          queryParameters: any(named: 'queryParameters'),
-        ),
-      ).thenAnswer(
-        (_) async => Response(
-          data: {
-            'cast': [
-              {
-                'id': 1,
-                'name': 'Peter Dinklage',
-                'character': 'Tyrion Lannister',
-                'order': 0,
-              },
-            ],
-            'guest_stars': [
-              {
-                'id': 1,
-                'name': 'Peter Dinklage',
-                'character': 'Tyrion Lannister',
-                'order': 0,
-              },
-            ],
-          },
-          requestOptions: RequestOptions(
-            path: '/tv/1396/season/1/episode/1/credits',
-          ),
-        ),
+      when(() => client.call(any())).thenAnswer(
+        (_) async => {
+          'cast': [
+            {
+              'id': 1,
+              'name': 'Peter Dinklage',
+              'character': 'Tyrion Lannister',
+              'order': 0,
+            },
+          ],
+          'guest_stars': [
+            {
+              'id': 1,
+              'name': 'Peter Dinklage',
+              'character': 'Tyrion Lannister',
+              'order': 0,
+            },
+          ],
+        },
       );
 
       final result = await service.fetchEpisodeCredits(1396, 1, 1);

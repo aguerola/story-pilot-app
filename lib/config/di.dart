@@ -1,4 +1,3 @@
-import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:storypilot/data/repositories/ask_repository.dart';
@@ -12,6 +11,7 @@ import 'package:storypilot/data/services/ask_functions_client.dart';
 import 'package:storypilot/data/services/callable_ask_service.dart';
 import 'package:storypilot/data/services/local_cache_service.dart';
 import 'package:storypilot/data/services/scene_functions_client.dart';
+import 'package:storypilot/data/services/tmdb_functions_client.dart';
 import 'package:storypilot/ui/ask/bloc/ask_bloc.dart';
 import 'package:storypilot/data/services/settings_service.dart';
 import 'package:storypilot/data/services/title_session_holder.dart';
@@ -44,16 +44,9 @@ Future<void> configureDependencies() async {
       () => AuthBloc(getIt<AuthService>())..add(const AuthStarted()),
     )
     ..registerLazySingleton(TitleSessionHolder.new)
-    ..registerLazySingleton<Dio>(
-      () => Dio(
-        BaseOptions(
-          connectTimeout: const Duration(seconds: 15),
-          receiveTimeout: const Duration(seconds: 15),
-          headers: const {'Accept': 'application/json'},
-        ),
-      ),
+    ..registerLazySingleton<TmdbFunctionsClient>(
+      FirebaseTmdbFunctionsClient.new,
     )
-    ..registerLazySingleton(() => TmdbService(getIt<Dio>()))
     ..registerLazySingleton<SceneFunctionsClient>(
       FirebaseSceneFunctionsClient.new,
     )
@@ -68,7 +61,10 @@ Future<void> configureDependencies() async {
       ),
     )
     ..registerLazySingleton(
-      () => TitleRepository(getIt<TmdbService>(), getIt<LocalCacheService>()),
+      () => TitleRepository(
+        TmdbService(getIt<TmdbFunctionsClient>()),
+        getIt<LocalCacheService>(),
+      ),
     )
     ..registerLazySingleton(
       () => SceneRepository(getIt<SceneFunctionsClient>()),

@@ -16,9 +16,9 @@ Widget → BloC → Repository → Service → API
 
 1. Install the **Dart** and **Flutter** extensions.
 2. Open **Run and Debug** (`Cmd+Shift+D`) and pick a configuration from `.vscode/launch.json`:
-   - **Story Pilot — Web**: TMDB + Cloud Functions (production).
-   - **Story Pilot — Web (emulator)**: TMDB + local Functions emulator.
-3. Export keys in `~/.zshrc` (see `.vscode/launch.local.json.example`).
+   - **Story Pilot — Web**: Cloud Functions (production).
+   - **Story Pilot — Web (emulator)**: local Functions emulator.
+3. TMDB metadata is served by [story-pilot-server](../story-pilot-server/) (`tmdb` callable). Configure `TMDB_API_KEY` in the server `.env` file.
 
 ## Setup
 
@@ -26,22 +26,9 @@ Widget → BloC → Repository → Service → API
 flutter pub get
 ```
 
-### API keys (dart-define)
+### Cloud Functions (TMDB + scene context + AI)
 
-```bash
-flutter run -d chrome \
-  --dart-define=TMDB_API_KEY=your_tmdb_key
-```
-
-Optional CORS proxy for web development:
-
-```bash
---dart-define=CORS_PROXY=https://corsproxy.io/?url=
-```
-
-### Cloud Functions (scene context + AI)
-
-Scene context, brief, and Q&A call **`getSceneContext`**, **`sceneBrief`**, and **`sceneAsk`** on [story-pilot-server](../story-pilot-server/). Processing runs server-side; API keys never leave the backend.
+Title search, detail, and cast call the **`tmdb`** callable on [story-pilot-server](../story-pilot-server/). Scene context, brief, and Q&A use **`getSceneContext`**, **`sceneBrief`**, and **`sceneAsk`**. API keys never leave the backend.
 
 For local development against the Functions emulator:
 
@@ -51,11 +38,10 @@ firebase emulators:start --only functions,firestore,storage --project storypilot
 
 # Terminal 2 (story-pilot-app/)
 flutter run -d chrome \
-  --dart-define=TMDB_API_KEY=your_tmdb_key \
   --dart-define=USE_FUNCTIONS_EMULATOR=true
 ```
 
-Set `GEMINI_API_KEY` in `story-pilot-server/functions/.env.storypilot-35945` (see server README).
+Set `TMDB_API_KEY`, `GEMINI_API_KEY`, and `OPENSUBTITLES_API_KEY` in `story-pilot-server/functions/.env.storypilot-35945` (see server README).
 
 ### Firebase Auth (email magic link)
 
@@ -72,7 +58,7 @@ No extra dart-defines are needed; web config is in `lib/firebase_options.dart`.
 
 ## Flow
 
-1. Search title (TMDB)
+1. Search title (via Cloud Functions → TMDB)
 2. View detail + cast
 3. Open scene → backend returns duration and scene metadata
 4. Set timestamp → scene context + AI brief
@@ -112,9 +98,8 @@ In **Settings → Secrets and variables → Actions**, add:
 | Secret | Description |
 |--------|-------------|
 | `FIREBASE_SERVICE_ACCOUNT` | Full JSON from Firebase Console → Project settings → Service accounts → Generate new private key |
-| `TMDB_API_KEY` | TMDB API key |
 
-Production web uses **Firebase Callable Functions** for scene context and AI via [story-pilot-server](../story-pilot-server/). For local dev against the emulator, add `--dart-define=USE_FUNCTIONS_EMULATOR=true` and run `firebase emulators:start --only functions,firestore,storage` in `story-pilot-server/`.
+Production web uses **Firebase Callable Functions** for TMDB metadata, scene context, and AI via [story-pilot-server](../story-pilot-server/). TMDB and other API keys live only on the server. For local dev against the emulator, add `--dart-define=USE_FUNCTIONS_EMULATOR=true` and run `firebase emulators:start --only functions,firestore,storage` in `story-pilot-server/`.
 
 The service account needs at least **Firebase Hosting Admin** (or **Firebase Admin** for simplicity).
 
@@ -129,8 +114,7 @@ The service account needs at least **Firebase Hosting Admin** (or **Firebase Adm
 ### Manual deploy (optional)
 
 ```bash
-flutter build web --release \
-  --dart-define=TMDB_API_KEY=your_tmdb_key
+flutter build web --release
 
 firebase deploy --only hosting
 ```
