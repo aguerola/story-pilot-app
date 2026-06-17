@@ -4,7 +4,6 @@ import 'package:storypilot/config/gemini_model.dart';
 import 'package:storypilot/data/repositories/scene_repository.dart';
 import 'package:storypilot/data/services/scene_functions_client.dart';
 import 'package:storypilot/domain/failure.dart';
-import 'package:storypilot/domain/models/cast_member.dart';
 import 'package:storypilot/domain/models/media_type.dart';
 import 'package:storypilot/domain/models/scene_brief.dart';
 import 'package:storypilot/domain/models/scene_context.dart';
@@ -26,15 +25,6 @@ void main() {
     askDialogueText: 'Hello',
     priorDialogueText: 'Hello',
   );
-
-  const cast = [
-    CastMember(
-      id: 1,
-      name: 'Actor',
-      characterName: 'Hero',
-      billingOrder: 0,
-    ),
-  ];
 
   setUp(() {
     client = MockSceneFunctionsClient();
@@ -73,7 +63,6 @@ void main() {
         tmdbId: 1,
         mediaType: MediaType.movie,
         timestampMs: 2000,
-        cast: cast,
         titleLabel: any(named: 'titleLabel'),
         imdbId: any(named: 'imdbId'),
         episode: any(named: 'episode'),
@@ -95,7 +84,6 @@ void main() {
       tmdbId: 1,
       mediaType: MediaType.movie,
       timestampMs: 2000,
-      cast: cast,
     );
 
     expect(result, isA<Success<SceneContextWithBrief>>());

@@ -144,7 +144,6 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> {
       tmdbId: detail.summary.id,
       mediaType: mediaType,
       timestampMs: timestampMs,
-      cast: cast,
       episode: mediaType == MediaType.tv ? _session.selectedEpisode : null,
       titleLabel: detail.summary.displayLabel,
       imdbId: detail.imdbId,

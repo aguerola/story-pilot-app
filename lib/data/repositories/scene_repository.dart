@@ -1,7 +1,6 @@
 import 'package:storypilot/config/gemini_model.dart';
 import 'package:storypilot/data/services/scene_functions_client.dart';
 import 'package:storypilot/domain/failure.dart';
-import 'package:storypilot/domain/models/cast_member.dart';
 import 'package:storypilot/domain/models/media_type.dart';
 import 'package:storypilot/domain/models/scene_brief.dart';
 import 'package:storypilot/domain/models/scene_context.dart';
@@ -55,7 +54,6 @@ class SceneRepository {
     required int tmdbId,
     required MediaType mediaType,
     required int timestampMs,
-    required List<CastMember> cast,
     TvEpisodeSelection? episode,
     String? titleLabel,
     String? imdbId,
@@ -66,7 +64,6 @@ class SceneRepository {
         tmdbId: tmdbId,
         mediaType: mediaType,
         timestampMs: timestampMs,
-        cast: cast,
         episode: episode,
         titleLabel: titleLabel,
         imdbId: imdbId,

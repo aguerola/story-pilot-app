@@ -61,7 +61,6 @@ class CallableAskService implements AskService {
       episode: title.summary.mediaType == MediaType.tv
           ? _session.selectedEpisode
           : null,
-      cast: _session.sceneCast,
       question: question,
       modelId: model.id,
     );

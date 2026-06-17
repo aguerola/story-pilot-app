@@ -91,7 +91,6 @@ void main() {
           tmdbId: 1,
           mediaType: MediaType.movie,
           timestampMs: 2000,
-          cast: any(named: 'cast'),
           episode: any(named: 'episode'),
           titleLabel: 'Matrix',
           imdbId: any(named: 'imdbId'),

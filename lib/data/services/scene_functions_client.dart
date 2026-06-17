@@ -1,7 +1,6 @@
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:storypilot/config/gemini_model.dart';
 import 'package:storypilot/domain/models/ai_usage.dart';
-import 'package:storypilot/domain/models/cast_member.dart';
 import 'package:storypilot/domain/models/media_type.dart';
 import 'package:storypilot/domain/models/scene_brief.dart';
 import 'package:storypilot/domain/models/scene_context.dart';
@@ -38,7 +37,6 @@ abstract class SceneFunctionsClient {
     required int tmdbId,
     required MediaType mediaType,
     required int timestampMs,
-    required List<CastMember> cast,
     String? titleLabel,
     String? imdbId,
     TvEpisodeSelection? episode,
@@ -105,7 +103,6 @@ class FirebaseSceneFunctionsClient implements SceneFunctionsClient {
     required int tmdbId,
     required MediaType mediaType,
     required int timestampMs,
-    required List<CastMember> cast,
     String? titleLabel,
     String? imdbId,
     TvEpisodeSelection? episode,
@@ -119,10 +116,6 @@ class FirebaseSceneFunctionsClient implements SceneFunctionsClient {
       episode: episode,
     );
     payload['timestampMs'] = timestampMs;
-    payload['cast'] = cast
-        .map((member) => {'characterName': member.characterName})
-        .where((entry) => (entry['characterName'] as String).isNotEmpty)
-        .toList();
     payload['modelId'] = model.id;
 
     final result =

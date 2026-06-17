@@ -1,5 +1,4 @@
 import 'package:cloud_functions/cloud_functions.dart';
-import 'package:storypilot/domain/models/cast_member.dart';
 import 'package:storypilot/domain/models/media_type.dart';
 import 'package:storypilot/domain/models/tv_episode_selection.dart';
 
@@ -11,7 +10,6 @@ abstract class AskFunctionsClient {
     required String question,
     String? titleLabel,
     TvEpisodeSelection? episode,
-    List<CastMember>? cast,
     String? modelId,
   });
 }
@@ -54,7 +52,6 @@ class FirebaseAskFunctionsClient implements AskFunctionsClient {
     required String question,
     String? titleLabel,
     TvEpisodeSelection? episode,
-    List<CastMember>? cast,
     String? modelId,
   }) async {
     final payload = _titlePayload(
@@ -65,12 +62,6 @@ class FirebaseAskFunctionsClient implements AskFunctionsClient {
       episode: episode,
     );
     payload['question'] = question;
-    if (cast != null) {
-      payload['cast'] = cast
-          .map((member) => {'characterName': member.characterName})
-          .where((entry) => (entry['characterName'] as String).isNotEmpty)
-          .toList();
-    }
     if (modelId != null) payload['modelId'] = modelId;
     final result = await _functions.httpsCallable('sceneAsk').call(payload);
     return Map<String, dynamic>.from(result.data as Map);
