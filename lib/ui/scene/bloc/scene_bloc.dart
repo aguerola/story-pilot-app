@@ -15,10 +15,18 @@ import 'package:storypilot/utils/brief_characters.dart';
 import 'package:storypilot/utils/bloc_debounce.dart';
 
 class SceneBloc extends Bloc<SceneEvent, SceneState> {
-  SceneBloc(this._repository, this._titles, this._session)
-      : super(const SceneInitial()) {
+  SceneBloc(
+    this._repository,
+    this._titles,
+    this._session, {
+    Duration preprocessingPollInterval = const Duration(seconds: 2),
+    Duration preprocessingTimeout = const Duration(minutes: 2),
+  })  : _preprocessingPollInterval = preprocessingPollInterval,
+        _preprocessingTimeout = preprocessingTimeout,
+        super(const SceneInitial()) {
     on<SceneStarted>(_onStarted);
     on<EpisodeSelected>(_onEpisodeSelected);
+    on<PreprocessingRetry>(_onPreprocessingRetry);
     on<TimestampChanged>(
       _onTimestampChanged,
       transformer: debounce(const Duration(milliseconds: 400)),
@@ -28,6 +36,10 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> {
   final SceneRepository _repository;
   final TitleRepository _titles;
   final TitleSessionHolder _session;
+  final Duration _preprocessingPollInterval;
+  final Duration _preprocessingTimeout;
+
+  _PrepareParams? _lastPrepareParams;
 
   Future<void> _onStarted(
     SceneStarted event,
@@ -42,7 +54,7 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> {
     if (episode != null) {
       _session.setSelectedEpisode(episode);
     }
-    await _ensureTitlePlayback(
+    await _prepareScene(
       tmdbId: event.tmdbId,
       mediaType: mediaType,
       episode: episode,
@@ -62,10 +74,27 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> {
     );
     _session.setSelectedEpisode(episode);
     _session.clearPlaybackState();
-    await _ensureTitlePlayback(
+    await _prepareScene(
       tmdbId: _session.titleDetail?.summary.id ?? 0,
       mediaType: mediaType,
       episode: episode,
+      emit: emit,
+    );
+  }
+
+  Future<void> _onPreprocessingRetry(
+    PreprocessingRetry event,
+    Emitter<SceneState> emit,
+  ) async {
+    final params = _lastPrepareParams;
+    if (params == null) {
+      emit(const SceneFailure(NotFoundFailure('Title not available')));
+      return;
+    }
+    await _prepareScene(
+      tmdbId: params.tmdbId,
+      mediaType: params.mediaType,
+      episode: params.episode,
       emit: emit,
     );
   }
@@ -96,12 +125,18 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> {
     return _session.selectedEpisode;
   }
 
-  Future<void> _ensureTitlePlayback({
+  Future<void> _prepareScene({
     required int tmdbId,
     required MediaType mediaType,
     required TvEpisodeSelection? episode,
     required Emitter<SceneState> emit,
   }) async {
+    _lastPrepareParams = _PrepareParams(
+      tmdbId: tmdbId,
+      mediaType: mediaType,
+      episode: episode,
+    );
+
     emit(const SceneLoading());
 
     final detail = _session.titleDetail;
@@ -112,22 +147,75 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> {
 
     await _loadSceneCast(detail: detail, episode: episode);
 
-    final playbackResult = await _repository.ensureTitlePlayback(
+    if (mediaType == MediaType.tv) {
+      final playbackResult = await _repository.ensureTitlePlayback(
+        tmdbId: tmdbId,
+        mediaType: mediaType,
+        episode: episode,
+        titleLabel: detail.summary.displayLabel,
+        imdbId: detail.imdbId,
+      );
+      switch (playbackResult) {
+        case Success():
+          break;
+        case Error(:final failure):
+          emit(SceneFailure(failure));
+          return;
+      }
+    }
+
+    await _waitForPreprocessing(
       tmdbId: tmdbId,
       mediaType: mediaType,
       episode: episode,
-      titleLabel: _session.titleDetail?.summary.displayLabel,
-      imdbId: _session.titleDetail?.imdbId,
+      titleLabel: detail.summary.displayLabel,
+      imdbId: detail.imdbId,
+      emit: emit,
     );
-    switch (playbackResult) {
-      case Success(:final data):
-        _session.setDurationMs(data);
-      case Error(:final failure):
-        emit(SceneFailure(failure));
-        return;
+  }
+
+  Future<void> _waitForPreprocessing({
+    required int tmdbId,
+    required MediaType mediaType,
+    required TvEpisodeSelection? episode,
+    required String? titleLabel,
+    required String? imdbId,
+    required Emitter<SceneState> emit,
+  }) async {
+    final deadline = DateTime.now().add(_preprocessingTimeout);
+
+    while (DateTime.now().isBefore(deadline)) {
+      final result = await _repository.getTitlePreprocessing(
+        tmdbId: tmdbId,
+        mediaType: mediaType,
+        episode: episode,
+        titleLabel: titleLabel,
+        imdbId: imdbId,
+      );
+
+      switch (result) {
+        case Success(:final data):
+          if (data.isReady) {
+            _session.setDurationMs(data.durationMs!);
+            emit(const SceneAwaitingTimestamp());
+            return;
+          }
+        case Error(:final failure):
+          emit(ScenePreprocessingFailure(failure));
+          return;
+      }
+
+      await Future<void>.delayed(_preprocessingPollInterval);
     }
 
-    emit(const SceneAwaitingTimestamp());
+    emit(
+      const ScenePreprocessingFailure(
+        ServerFailure(
+          'El análisis del título está tardando más de lo esperado. '
+          'Inténtalo de nuevo en unos minutos.',
+        ),
+      ),
+    );
   }
 
   Future<void> _loadContext(int timestampMs, Emitter<SceneState> emit) async {
@@ -187,4 +275,16 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> {
         _session.setSceneCast(detail.cast.take(maxBriefCast).toList());
     }
   }
+}
+
+class _PrepareParams {
+  const _PrepareParams({
+    required this.tmdbId,
+    required this.mediaType,
+    required this.episode,
+  });
+
+  final int tmdbId;
+  final MediaType mediaType;
+  final TvEpisodeSelection? episode;
 }

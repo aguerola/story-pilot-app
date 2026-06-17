@@ -47,3 +47,7 @@ final class TimestampChanged extends SceneEvent {
   @override
   List<Object?> get props => [timestampMs];
 }
+
+final class PreprocessingRetry extends SceneEvent {
+  const PreprocessingRetry();
+}

@@ -272,12 +272,14 @@ class _SceneContextPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return switch (state) {
-      SceneInitial() || SceneLoading() => const Padding(
-          padding: EdgeInsets.symmetric(vertical: 24),
-          child: LinearProgressIndicator(),
-        ),
+      SceneInitial() || SceneLoading() => const _ScenePreprocessingLoading(),
       SceneAwaitingEpisode() => const _AwaitingEpisodePrompt(),
       SceneAwaitingTimestamp() => const _AwaitingTimestampPrompt(),
+      ScenePreprocessingFailure(:final failure) => _PreprocessingFailurePanel(
+          message: failure.message,
+          onRetry: () =>
+              context.read<SceneBloc>().add(const PreprocessingRetry()),
+        ),
       SceneFailure(:final failure) => Padding(
           padding: const EdgeInsets.symmetric(vertical: 24),
           child: Center(child: Text(failure.message)),
@@ -290,6 +292,58 @@ class _SceneContextPanel extends StatelessWidget {
           briefError: briefError,
         ),
     };
+  }
+}
+
+class _ScenePreprocessingLoading extends StatelessWidget {
+  const _ScenePreprocessingLoading();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 24),
+      child: Column(
+        children: [
+          const LinearProgressIndicator(),
+          const SizedBox(height: 16),
+          Text(
+            'Preparando análisis del título…',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PreprocessingFailurePanel extends StatelessWidget {
+  const _PreprocessingFailurePanel({
+    required this.message,
+    required this.onRetry,
+  });
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 24),
+      child: Column(
+        children: [
+          Text(message, textAlign: TextAlign.center),
+          const SizedBox(height: 16),
+          FilledButton(
+            onPressed: onRetry,
+            child: const Text('Reintentar'),
+          ),
+        ],
+      ),
+    );
   }
 }
 

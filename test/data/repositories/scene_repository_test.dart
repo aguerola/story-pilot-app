@@ -8,6 +8,7 @@ import 'package:storypilot/domain/models/media_type.dart';
 import 'package:storypilot/domain/models/scene_brief.dart';
 import 'package:storypilot/domain/models/scene_context.dart';
 import 'package:storypilot/domain/models/dialogue_line.dart';
+import 'package:storypilot/domain/models/title_preprocessing.dart';
 import 'package:storypilot/domain/result.dart';
 
 class MockSceneFunctionsClient extends Mock implements SceneFunctionsClient {}
@@ -140,5 +141,56 @@ void main() {
       (result as Error<int>).failure.message,
       'No hay información de escena disponible para este título.',
     );
+  });
+
+  test('getTitlePreprocessing returns ready result', () async {
+    when(
+      () => client.getTitlePreprocessing(
+        tmdbId: 1,
+        mediaType: MediaType.movie,
+        titleLabel: any(named: 'titleLabel'),
+        imdbId: any(named: 'imdbId'),
+        episode: any(named: 'episode'),
+      ),
+    ).thenAnswer(
+      (_) async => const TitlePreprocessingResult.ready(
+        durationMs: 7200000,
+        titleLabel: 'Matrix',
+        sceneCount: 5,
+        analysisVersion: 3,
+        generatedAt: 123,
+      ),
+    );
+
+    final result = await repository.getTitlePreprocessing(
+      tmdbId: 1,
+      mediaType: MediaType.movie,
+    );
+
+    expect(result, isA<Success<TitlePreprocessingResult>>());
+    final data = (result as Success<TitlePreprocessingResult>).data;
+    expect(data.isReady, isTrue);
+    expect(data.durationMs, 7200000);
+    expect(data.sceneCount, 5);
+  });
+
+  test('getTitlePreprocessing passes through pending status', () async {
+    when(
+      () => client.getTitlePreprocessing(
+        tmdbId: 1,
+        mediaType: MediaType.movie,
+        titleLabel: any(named: 'titleLabel'),
+        imdbId: any(named: 'imdbId'),
+        episode: any(named: 'episode'),
+      ),
+    ).thenAnswer((_) async => const TitlePreprocessingResult.pending());
+
+    final result = await repository.getTitlePreprocessing(
+      tmdbId: 1,
+      mediaType: MediaType.movie,
+    );
+
+    expect(result, isA<Success<TitlePreprocessingResult>>());
+    expect((result as Success<TitlePreprocessingResult>).data.isPending, isTrue);
   });
 }

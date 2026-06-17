@@ -11,6 +11,7 @@ import 'package:storypilot/domain/models/scene_context.dart';
 import 'package:storypilot/domain/models/season.dart';
 import 'package:storypilot/domain/models/dialogue_line.dart';
 import 'package:storypilot/domain/models/title_detail.dart';
+import 'package:storypilot/domain/models/title_preprocessing.dart';
 import 'package:storypilot/domain/models/title_summary.dart';
 import 'package:storypilot/domain/models/tv_episode_selection.dart';
 import 'package:storypilot/domain/result.dart';
@@ -21,6 +22,14 @@ import 'package:storypilot/ui/scene/bloc/scene_state.dart';
 class MockSceneRepository extends Mock implements SceneRepository {}
 
 class MockTitleRepository extends Mock implements TitleRepository {}
+
+const _readyPreprocessing = TitlePreprocessingResult.ready(
+  durationMs: 5000,
+  titleLabel: 'Matrix',
+  sceneCount: 3,
+  analysisVersion: 3,
+  generatedAt: 1,
+);
 
 void main() {
   late MockSceneRepository repository;
@@ -39,6 +48,7 @@ void main() {
   );
 
   setUpAll(() {
+    registerFallbackValue(MediaType.movie);
     registerFallbackValue(const TvEpisodeSelection(
       seasonNumber: 1,
       episodeNumber: 1,
@@ -78,7 +88,13 @@ void main() {
         ),
       )
       ..setDurationMs(5000);
-    bloc = SceneBloc(repository, titles, session);
+    bloc = SceneBloc(
+      repository,
+      titles,
+      session,
+      preprocessingPollInterval: const Duration(milliseconds: 1),
+      preprocessingTimeout: const Duration(milliseconds: 20),
+    );
   });
 
   tearDown(() => bloc.close());
@@ -111,17 +127,24 @@ void main() {
   );
 
   blocTest<SceneBloc, SceneState>(
-    'prepares scene then awaits a timestamp instead of loading 0',
+    'waits for preprocessing then awaits a timestamp for movies',
     build: () {
       when(
-        () => repository.ensureTitlePlayback(
-          tmdbId: 1,
-          mediaType: MediaType.movie,
+        () => repository.getTitlePreprocessing(
+          tmdbId: any(named: 'tmdbId'),
+          mediaType: any(named: 'mediaType'),
           episode: any(named: 'episode'),
-          titleLabel: 'Matrix',
+          titleLabel: any(named: 'titleLabel'),
+          imdbId: any(named: 'imdbId'),
         ),
-      ).thenAnswer((_) async => const Success(5000));
-      return SceneBloc(repository, titles, session);
+      ).thenAnswer((_) async => const Success(_readyPreprocessing));
+      return SceneBloc(
+      repository,
+      titles,
+      session,
+      preprocessingPollInterval: const Duration(milliseconds: 1),
+      preprocessingTimeout: const Duration(milliseconds: 20),
+      );
     },
     act: (bloc) => bloc.add(
       const SceneStarted(tmdbId: 1, mediaType: MediaType.movie),
@@ -130,29 +153,137 @@ void main() {
       const SceneLoading(),
       const SceneAwaitingTimestamp(),
     ],
+    verify: (_) {
+      verifyNever(
+        () => repository.ensureTitlePlayback(
+          tmdbId: any(named: 'tmdbId'),
+          mediaType: any(named: 'mediaType'),
+          episode: any(named: 'episode'),
+          titleLabel: any(named: 'titleLabel'),
+          imdbId: any(named: 'imdbId'),
+        ),
+      );
+      verify(
+        () => repository.getTitlePreprocessing(
+          tmdbId: 1,
+          mediaType: MediaType.movie,
+          episode: null,
+          titleLabel: 'Matrix',
+          imdbId: any(named: 'imdbId'),
+        ),
+      ).called(1);
+    },
   );
 
   blocTest<SceneBloc, SceneState>(
-    'emits failure when prepare fails',
+    'polls preprocessing until ready',
     build: () {
+      var calls = 0;
       when(
-        () => repository.ensureTitlePlayback(
-          tmdbId: 1,
-          mediaType: MediaType.movie,
+        () => repository.getTitlePreprocessing(
+          tmdbId: any(named: 'tmdbId'),
+          mediaType: any(named: 'mediaType'),
           episode: any(named: 'episode'),
-          titleLabel: 'Matrix',
+          titleLabel: any(named: 'titleLabel'),
+          imdbId: any(named: 'imdbId'),
         ),
-      ).thenAnswer(
-        (_) async => const Error(NotFoundFailure('Scene dialogue not available')),
+      ).thenAnswer((_) async {
+        calls++;
+        if (calls == 1) {
+          return const Success(TitlePreprocessingResult.pending());
+        }
+        return const Success(_readyPreprocessing);
+      });
+      return SceneBloc(
+        repository,
+        titles,
+        session,
+        preprocessingPollInterval: const Duration(milliseconds: 10),
+        preprocessingTimeout: const Duration(seconds: 1),
       );
-      return SceneBloc(repository, titles, session);
     },
     act: (bloc) => bloc.add(
       const SceneStarted(tmdbId: 1, mediaType: MediaType.movie),
     ),
+    wait: const Duration(milliseconds: 50),
     expect: () => [
       const SceneLoading(),
-      isA<SceneFailure>(),
+      const SceneAwaitingTimestamp(),
+    ],
+    verify: (_) {
+      verify(
+        () => repository.getTitlePreprocessing(
+          tmdbId: any(named: 'tmdbId'),
+          mediaType: any(named: 'mediaType'),
+          episode: any(named: 'episode'),
+          titleLabel: any(named: 'titleLabel'),
+          imdbId: any(named: 'imdbId'),
+        ),
+      ).called(2);
+    },
+  );
+
+  blocTest<SceneBloc, SceneState>(
+    'emits preprocessing failure on timeout',
+    build: () {
+      when(
+        () => repository.getTitlePreprocessing(
+          tmdbId: any(named: 'tmdbId'),
+          mediaType: any(named: 'mediaType'),
+          episode: any(named: 'episode'),
+          titleLabel: any(named: 'titleLabel'),
+          imdbId: any(named: 'imdbId'),
+        ),
+      ).thenAnswer((_) async => const Success(TitlePreprocessingResult.pending()));
+      return SceneBloc(
+        repository,
+        titles,
+        session,
+        preprocessingPollInterval: const Duration(milliseconds: 10),
+        preprocessingTimeout: const Duration(milliseconds: 25),
+      );
+    },
+    act: (bloc) => bloc.add(
+      const SceneStarted(tmdbId: 1, mediaType: MediaType.movie),
+    ),
+    wait: const Duration(milliseconds: 80),
+    expect: () => [
+      const SceneLoading(),
+      isA<ScenePreprocessingFailure>(),
+    ],
+  );
+
+  blocTest<SceneBloc, SceneState>(
+    'retries preprocessing after failure',
+    build: () {
+      when(
+        () => repository.getTitlePreprocessing(
+          tmdbId: any(named: 'tmdbId'),
+          mediaType: any(named: 'mediaType'),
+          episode: any(named: 'episode'),
+          titleLabel: any(named: 'titleLabel'),
+          imdbId: any(named: 'imdbId'),
+        ),
+      ).thenAnswer((_) async => const Success(_readyPreprocessing));
+      return SceneBloc(
+        repository,
+        titles,
+        session,
+        preprocessingPollInterval: const Duration(milliseconds: 1),
+        preprocessingTimeout: const Duration(milliseconds: 20),
+      );
+    },
+    act: (bloc) async {
+      bloc.add(const SceneStarted(tmdbId: 1, mediaType: MediaType.movie));
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      bloc.add(const PreprocessingRetry());
+    },
+    wait: const Duration(milliseconds: 80),
+    expect: () => [
+      const SceneLoading(),
+      const SceneAwaitingTimestamp(),
+      const SceneLoading(),
+      const SceneAwaitingTimestamp(),
     ],
   );
 
@@ -179,7 +310,13 @@ void main() {
           ),
         )
         ..durationMs = null;
-      return SceneBloc(repository, titles, session);
+      return SceneBloc(
+        repository,
+        titles,
+        session,
+        preprocessingPollInterval: const Duration(milliseconds: 1),
+        preprocessingTimeout: const Duration(milliseconds: 20),
+      );
     },
     act: (bloc) => bloc.add(
       const SceneStarted(tmdbId: 10, mediaType: MediaType.tv),
@@ -188,7 +325,7 @@ void main() {
   );
 
   blocTest<SceneBloc, SceneState>(
-    'prepares scene for selected TV episode',
+    'ensures playback then waits for preprocessing for TV episode',
     build: () {
       session
         ..setTitleDetail(
@@ -219,9 +356,38 @@ void main() {
             episodeNumber: 3,
           ),
           titleLabel: 'Breaking Bad',
+          imdbId: any(named: 'imdbId'),
         ),
       ).thenAnswer((_) async => const Success(3600000));
-      return SceneBloc(repository, titles, session);
+      when(
+        () => repository.getTitlePreprocessing(
+          tmdbId: 10,
+          mediaType: MediaType.tv,
+          episode: const TvEpisodeSelection(
+            seasonNumber: 1,
+            episodeNumber: 3,
+          ),
+          titleLabel: 'Breaking Bad',
+          imdbId: any(named: 'imdbId'),
+        ),
+      ).thenAnswer(
+        (_) async => const Success(
+          TitlePreprocessingResult.ready(
+            durationMs: 3600000,
+            titleLabel: 'Breaking Bad',
+            sceneCount: 2,
+            analysisVersion: 3,
+            generatedAt: 1,
+          ),
+        ),
+      );
+      return SceneBloc(
+        repository,
+        titles,
+        session,
+        preprocessingPollInterval: const Duration(milliseconds: 1),
+        preprocessingTimeout: const Duration(milliseconds: 20),
+      );
     },
     act: (bloc) => bloc.add(
       const SceneStarted(
@@ -234,6 +400,58 @@ void main() {
     expect: () => [
       const SceneLoading(),
       const SceneAwaitingTimestamp(),
+    ],
+  );
+
+  blocTest<SceneBloc, SceneState>(
+    'emits failure when TV ensureTitlePlayback fails',
+    build: () {
+      session
+        ..setTitleDetail(
+          TitleDetail(
+            summary: const TitleSummary(
+              id: 10,
+              mediaType: MediaType.tv,
+              title: 'Breaking Bad',
+            ),
+            overview: '',
+            cast: const [],
+          ),
+        )
+        ..durationMs = null;
+      when(
+        () => repository.ensureTitlePlayback(
+          tmdbId: 10,
+          mediaType: MediaType.tv,
+          episode: const TvEpisodeSelection(
+            seasonNumber: 1,
+            episodeNumber: 3,
+          ),
+          titleLabel: 'Breaking Bad',
+          imdbId: any(named: 'imdbId'),
+        ),
+      ).thenAnswer(
+        (_) async => const Error(NotFoundFailure('Scene dialogue not available')),
+      );
+      return SceneBloc(
+        repository,
+        titles,
+        session,
+        preprocessingPollInterval: const Duration(milliseconds: 1),
+        preprocessingTimeout: const Duration(milliseconds: 20),
+      );
+    },
+    act: (bloc) => bloc.add(
+      const SceneStarted(
+        tmdbId: 10,
+        mediaType: MediaType.tv,
+        seasonNumber: 1,
+        episodeNumber: 3,
+      ),
+    ),
+    expect: () => [
+      const SceneLoading(),
+      isA<SceneFailure>(),
     ],
   );
 
@@ -293,9 +511,38 @@ void main() {
             episodeNumber: 3,
           ),
           titleLabel: 'Breaking Bad',
+          imdbId: any(named: 'imdbId'),
         ),
       ).thenAnswer((_) async => const Success(3600000));
-      return SceneBloc(repository, titles, session);
+      when(
+        () => repository.getTitlePreprocessing(
+          tmdbId: 10,
+          mediaType: MediaType.tv,
+          episode: const TvEpisodeSelection(
+            seasonNumber: 1,
+            episodeNumber: 3,
+          ),
+          titleLabel: 'Breaking Bad',
+          imdbId: any(named: 'imdbId'),
+        ),
+      ).thenAnswer(
+        (_) async => const Success(
+          TitlePreprocessingResult.ready(
+            durationMs: 3600000,
+            titleLabel: 'Breaking Bad',
+            sceneCount: 2,
+            analysisVersion: 3,
+            generatedAt: 1,
+          ),
+        ),
+      );
+      return SceneBloc(
+        repository,
+        titles,
+        session,
+        preprocessingPollInterval: const Duration(milliseconds: 1),
+        preprocessingTimeout: const Duration(milliseconds: 20),
+      );
     },
     act: (bloc) => bloc.add(
       const SceneStarted(
@@ -342,14 +589,31 @@ void main() {
         )
         ..durationMs = null;
       when(
-        () => repository.ensureTitlePlayback(
+        () => repository.getTitlePreprocessing(
           tmdbId: 27205,
           mediaType: MediaType.movie,
           episode: null,
           titleLabel: 'Breaking Bad',
+          imdbId: any(named: 'imdbId'),
         ),
-      ).thenAnswer((_) async => const Success(7200000));
-      return SceneBloc(repository, titles, session);
+      ).thenAnswer(
+        (_) async => const Success(
+          TitlePreprocessingResult.ready(
+            durationMs: 7200000,
+            titleLabel: 'Breaking Bad',
+            sceneCount: 4,
+            analysisVersion: 3,
+            generatedAt: 1,
+          ),
+        ),
+      );
+      return SceneBloc(
+        repository,
+        titles,
+        session,
+        preprocessingPollInterval: const Duration(milliseconds: 1),
+        preprocessingTimeout: const Duration(milliseconds: 20),
+      );
     },
     act: (bloc) => bloc.add(
       const SceneStarted(tmdbId: 27205, mediaType: MediaType.movie),

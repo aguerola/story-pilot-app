@@ -4,6 +4,7 @@ import 'package:storypilot/domain/failure.dart';
 import 'package:storypilot/domain/models/media_type.dart';
 import 'package:storypilot/domain/models/scene_brief.dart';
 import 'package:storypilot/domain/models/scene_context.dart';
+import 'package:storypilot/domain/models/title_preprocessing.dart';
 import 'package:storypilot/domain/models/tv_episode_selection.dart';
 import 'package:storypilot/domain/result.dart';
 
@@ -45,6 +46,34 @@ class SceneRepository {
         );
       }
       return Success(result.durationMs);
+    } catch (error) {
+      return Error(_mapSceneError(error));
+    }
+  }
+
+  Future<Result<TitlePreprocessingResult>> getTitlePreprocessing({
+    required int tmdbId,
+    required MediaType mediaType,
+    TvEpisodeSelection? episode,
+    String? titleLabel,
+    String? imdbId,
+  }) async {
+    try {
+      final result = await _client.getTitlePreprocessing(
+        tmdbId: tmdbId,
+        mediaType: mediaType,
+        episode: episode,
+        titleLabel: titleLabel,
+        imdbId: imdbId,
+      );
+      if (result.isReady && (result.durationMs == null || result.durationMs! <= 0)) {
+        return const Error(
+          NotFoundFailure(
+            'No hay información de escena disponible para este título.',
+          ),
+        );
+      }
+      return Success(result);
     } catch (error) {
       return Error(_mapSceneError(error));
     }

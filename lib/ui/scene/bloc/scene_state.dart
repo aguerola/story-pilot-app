@@ -65,3 +65,12 @@ final class SceneFailure extends SceneState {
   @override
   List<Object?> get props => [failure];
 }
+
+final class ScenePreprocessingFailure extends SceneState {
+  const ScenePreprocessingFailure(this.failure);
+
+  final Failure failure;
+
+  @override
+  List<Object?> get props => [failure];
+}

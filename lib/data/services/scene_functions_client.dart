@@ -4,6 +4,7 @@ import 'package:storypilot/domain/models/ai_usage.dart';
 import 'package:storypilot/domain/models/media_type.dart';
 import 'package:storypilot/domain/models/scene_brief.dart';
 import 'package:storypilot/domain/models/scene_context.dart';
+import 'package:storypilot/domain/models/title_preprocessing.dart';
 import 'package:storypilot/domain/models/tv_episode_selection.dart';
 
 class EnsureTitlePlaybackResult {
@@ -26,6 +27,14 @@ class GetSceneContextResult {
 
 abstract class SceneFunctionsClient {
   Future<EnsureTitlePlaybackResult> ensureTitlePlayback({
+    required int tmdbId,
+    required MediaType mediaType,
+    String? titleLabel,
+    String? imdbId,
+    TvEpisodeSelection? episode,
+  });
+
+  Future<TitlePreprocessingResult> getTitlePreprocessing({
     required int tmdbId,
     required MediaType mediaType,
     String? titleLabel,
@@ -96,6 +105,38 @@ class FirebaseSceneFunctionsClient implements SceneFunctionsClient {
     return EnsureTitlePlaybackResult(
       durationMs: data['durationMs'] as int? ?? 0,
     );
+  }
+
+  @override
+  Future<TitlePreprocessingResult> getTitlePreprocessing({
+    required int tmdbId,
+    required MediaType mediaType,
+    String? titleLabel,
+    String? imdbId,
+    TvEpisodeSelection? episode,
+  }) async {
+    final payload = _titlePayload(
+      tmdbId: tmdbId,
+      mediaType: mediaType,
+      titleLabel: titleLabel,
+      imdbId: imdbId,
+      episode: episode,
+    );
+
+    final result =
+        await _functions.httpsCallable('getTitlePreprocessing').call(payload);
+    final data = Map<String, dynamic>.from(result.data as Map);
+    final status = data['status'] as String?;
+    if (status == 'ready') {
+      return TitlePreprocessingResult.ready(
+        durationMs: data['durationMs'] as int? ?? 0,
+        titleLabel: data['titleLabel'] as String? ?? '',
+        sceneCount: data['sceneCount'] as int? ?? 0,
+        analysisVersion: data['analysisVersion'] as int? ?? 0,
+        generatedAt: data['generatedAt'] as int? ?? 0,
+      );
+    }
+    return const TitlePreprocessingResult.pending();
   }
 
   @override

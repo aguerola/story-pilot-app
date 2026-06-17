@@ -79,6 +79,7 @@ Future<void> configureDependencies() async {
     ..registerFactory(
       () => TitleDetailBloc(
         getIt<TitleRepository>(),
+        getIt<SceneRepository>(),
         getIt<TitleSessionHolder>(),
         getIt<BrowseHistoryService>(),
       ),
