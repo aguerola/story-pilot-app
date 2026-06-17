@@ -16,6 +16,7 @@ import 'package:storypilot/domain/models/media_type.dart';
 import 'package:storypilot/domain/models/tv_episode_selection.dart';
 import 'package:storypilot/domain/models/season.dart';
 import 'package:storypilot/ui/scene/widgets/scene_ask_panel.dart';
+import 'package:storypilot/ui/scene/widgets/scene_segmented_progress_bar.dart';
 import 'package:storypilot/ui/scene/widgets/season_episode_selector.dart';
 import 'package:storypilot/utils/timestamp_utils.dart';
 
@@ -192,6 +193,11 @@ class _SceneViewState extends State<_SceneView> {
               }
             }
 
+            final session = getIt<TitleSessionHolder>();
+            final breakdown = session.titleBreakdown;
+            final scenes = breakdown?.scenes ?? const [];
+            final totalDurationMs = session.durationMs ?? _maxMs.toInt();
+
             final askEnabled =
                 state is SceneLoaded && state.isContextReady;
             final showEpisodeSelector = _isTv &&
@@ -236,9 +242,10 @@ class _SceneViewState extends State<_SceneView> {
                       ),
                     ],
                   ),
-                  Slider(
-                    value: _sliderValue.clamp(0, _maxMs),
-                    max: _maxMs,
+                  SceneSegmentedProgressBar(
+                    scenes: scenes,
+                    totalDurationMs: totalDurationMs,
+                    valueMs: _sliderValue.clamp(0, _maxMs),
                     onChanged: _onSliderChanged,
                     onChangeEnd: _onSliderReleased,
                   ),
