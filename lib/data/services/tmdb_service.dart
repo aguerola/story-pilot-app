@@ -4,8 +4,9 @@ import 'package:storypilot/data/services/tmdb_functions_client.dart';
 import 'package:storypilot/domain/failure.dart';
 import 'package:storypilot/domain/models/cast_member.dart';
 import 'package:storypilot/domain/models/crew_member.dart';
-import 'package:storypilot/domain/models/media_type.dart';
+import 'package:storypilot/domain/models/person_detail.dart';
 import 'package:storypilot/domain/models/episode.dart';
+import 'package:storypilot/domain/models/media_type.dart';
 import 'package:storypilot/domain/models/season.dart';
 import 'package:storypilot/domain/models/title_detail.dart';
 import 'package:storypilot/domain/models/title_summary.dart';
@@ -273,6 +274,20 @@ class TmdbService {
     }
   }
 
+  Future<Result<PersonDetail>> fetchPersonDetail(int personId) async {
+    try {
+      final data = await _client.call({
+        'op': 'personDetail',
+        'id': personId,
+      });
+      return Success(_mapPersonDetail(data));
+    } on FirebaseFunctionsException catch (e) {
+      return Error(_mapFunctionsError(e));
+    } catch (e) {
+      return Error(ServerFailure(e.toString()));
+    }
+  }
+
   Future<Result<List<CastMember>>> fetchEpisodeCredits(
     int tvId,
     int seasonNumber,
@@ -419,6 +434,55 @@ class TmdbService {
   String? _posterUrl(String? path) {
     if (path == null || path.isEmpty) return null;
     return '${Env.tmdbImageBaseUrl}$path';
+  }
+
+  PersonDetail _mapPersonDetail(Map<String, dynamic> json) {
+    final combinedCredits = json['combined_credits'];
+    return PersonDetail(
+      id: json['id'] as int? ?? 0,
+      name: json['name'] as String? ?? '',
+      biography: _trimOrNull(json['biography'] as String?),
+      birthday: _trimOrNull(json['birthday'] as String?),
+      placeOfBirth: _trimOrNull(json['place_of_birth'] as String?),
+      profileUrl: _posterUrl(json['profile_path'] as String?),
+      knownFor: combinedCredits is Map<String, dynamic>
+          ? _mapKnownFor(combinedCredits)
+          : const [],
+    );
+  }
+
+  String? _trimOrNull(String? value) {
+    final trimmed = value?.trim();
+    if (trimmed == null || trimmed.isEmpty) return null;
+    return trimmed;
+  }
+
+  List<PersonKnownForCredit> _mapKnownFor(Map<String, dynamic> combinedCredits) {
+    final cast = combinedCredits['cast'] as List<dynamic>? ?? [];
+    final entries = cast.whereType<Map<String, dynamic>>().toList()
+      ..sort((a, b) {
+        final aPop = (a['popularity'] as num?)?.toDouble() ?? 0;
+        final bPop = (b['popularity'] as num?)?.toDouble() ?? 0;
+        return bPop.compareTo(aPop);
+      });
+
+    return entries.take(5).map((entry) {
+      final mediaType = entry['media_type'] as String? ?? 'movie';
+      final title = mediaType == 'movie'
+          ? entry['title'] as String? ?? ''
+          : entry['name'] as String? ?? '';
+      final date = mediaType == 'movie'
+          ? entry['release_date'] as String?
+          : entry['first_air_date'] as String?;
+
+      return PersonKnownForCredit(
+        title: title,
+        characterName: _trimOrNull(entry['character'] as String?),
+        year: _parseYear(date),
+        posterUrl: _posterUrl(entry['poster_path'] as String?),
+        mediaType: mediaType,
+      );
+    }).where((credit) => credit.title.isNotEmpty).toList();
   }
 
   Failure _mapFunctionsError(FirebaseFunctionsException e) {

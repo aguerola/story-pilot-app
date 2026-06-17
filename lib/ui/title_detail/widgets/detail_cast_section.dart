@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:storypilot/domain/models/cast_member.dart';
+import 'package:storypilot/ui/core/ui/person_detail_sheet.dart';
 
 class DetailCastSection extends StatelessWidget {
   const DetailCastSection({super.key, required this.cast});
@@ -28,26 +29,35 @@ class DetailCastSection extends StatelessWidget {
               final member = cast[index];
               return SizedBox(
                 width: 80,
-                child: Column(
-                  children: [
-                    CircleAvatar(
-                      radius: 32,
-                      backgroundImage: member.profileUrl != null
-                          ? NetworkImage(member.profileUrl!)
-                          : null,
-                      child: member.profileUrl == null
-                          ? Text(member.name.isNotEmpty ? member.name[0] : '?')
-                          : null,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      member.characterName,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                  ],
+                child: InkWell(
+                  onTap: () => showPersonDetailSheet(
+                    context,
+                    castMember: member,
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                  child: Column(
+                    children: [
+                      CircleAvatar(
+                        radius: 32,
+                        backgroundImage: member.profileUrl != null
+                            ? NetworkImage(member.profileUrl!)
+                            : null,
+                        child: member.profileUrl == null
+                            ? Text(
+                                member.name.isNotEmpty ? member.name[0] : '?',
+                              )
+                            : null,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        member.characterName,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
                 ),
               );
             },

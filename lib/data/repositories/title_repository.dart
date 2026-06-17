@@ -4,6 +4,7 @@ import 'package:storypilot/data/services/tmdb_service.dart';
 import 'package:storypilot/domain/models/cast_member.dart';
 import 'package:storypilot/domain/models/episode.dart';
 import 'package:storypilot/domain/models/media_type.dart';
+import 'package:storypilot/domain/models/person_detail.dart';
 import 'package:storypilot/domain/models/title_detail.dart';
 import 'package:storypilot/domain/models/title_summary.dart';
 import 'package:storypilot/domain/models/tv_episode_selection.dart';
@@ -72,5 +73,9 @@ class TitleRepository {
 
   Future<Result<List<TitleSummary>>> getPopularSeries() {
     return _tmdb.fetchPopularSeries();
+  }
+
+  Future<Result<PersonDetail>> getPersonDetail(int personId) {
+    return _tmdb.fetchPersonDetail(personId);
   }
 }

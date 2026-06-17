@@ -1,13 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:storypilot/domain/models/match_confidence.dart';
 import 'package:storypilot/domain/models/scene_context.dart';
+import 'package:storypilot/ui/core/ui/person_detail_sheet.dart';
 
 class CharacterChip extends StatelessWidget {
-  const CharacterChip({super.key, required this.character});
+  const CharacterChip({
+    super.key,
+    required this.character,
+    this.onTap,
+  });
 
   static const _avatarSize = 48.0;
 
   final SceneCharacter character;
+  final VoidCallback? onTap;
 
   Color _confidenceColor(MatchConfidence confidence) {
     return switch (confidence) {
@@ -75,6 +81,11 @@ class CharacterChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final handleTap = onTap ??
+        () => showPersonDetailSheet(
+              context,
+              castMember: character.castMember,
+            );
 
     return Tooltip(
       message: '${character.confidence.label}: ${character.matchedBy}',
@@ -87,20 +98,24 @@ class CharacterChip extends StatelessWidget {
             color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
           ),
         ),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(6, 6, 14, 6),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildAvatar(context),
-              const SizedBox(width: 10),
-              Text(
-                character.castMember.characterName,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w500,
+        child: InkWell(
+          onTap: handleTap,
+          borderRadius: BorderRadius.circular(28),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(6, 6, 14, 6),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildAvatar(context),
+                const SizedBox(width: 10),
+                Text(
+                  character.castMember.characterName,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

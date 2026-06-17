@@ -7,6 +7,7 @@ import 'package:storypilot/domain/models/crew_member.dart';
 import 'package:storypilot/domain/models/episode.dart';
 import 'package:storypilot/domain/models/media_type.dart';
 import 'package:storypilot/domain/models/title_detail.dart';
+import 'package:storypilot/domain/models/person_detail.dart';
 import 'package:storypilot/domain/models/title_summary.dart';
 import 'package:storypilot/domain/result.dart';
 
@@ -451,6 +452,94 @@ void main() {
       final result = await service.fetchEpisodeCredits(1396, 1, 1);
 
       expect((result as Success<List<CastMember>>).data, hasLength(1));
+    });
+  });
+
+  group('fetchPersonDetail mapping', () {
+    final personFixture = {
+      'id': 819,
+      'name': 'Edward Norton',
+      'biography': 'American actor.',
+      'birthday': '1969-08-18',
+      'place_of_birth': 'Boston, Massachusetts, USA',
+      'profile_path': '/norton.jpg',
+      'combined_credits': {
+        'cast': [
+          {
+            'media_type': 'movie',
+            'title': 'Fight Club',
+            'character': 'The Narrator',
+            'release_date': '1999-10-15',
+            'poster_path': '/fc.jpg',
+            'popularity': 10.0,
+          },
+          {
+            'media_type': 'movie',
+            'title': 'American History X',
+            'character': 'Derek Vinyard',
+            'release_date': '1998-10-30',
+            'poster_path': '/ahx.jpg',
+            'popularity': 8.0,
+          },
+          {
+            'media_type': 'tv',
+            'name': 'Modern Family',
+            'character': 'Guest',
+            'first_air_date': '2009-09-23',
+            'poster_path': '/mf.jpg',
+            'popularity': 5.0,
+          },
+        ],
+      },
+    };
+
+    test('maps biography, metadata and top known-for credits', () async {
+      when(() => client.call(any())).thenAnswer(
+        (_) async => Map<String, dynamic>.from(personFixture),
+      );
+
+      final result = await service.fetchPersonDetail(819);
+
+      expect(result, isA<Success<PersonDetail>>());
+      final detail = (result as Success<PersonDetail>).data;
+      expect(detail.name, 'Edward Norton');
+      expect(detail.biography, 'American actor.');
+      expect(detail.birthday, '1969-08-18');
+      expect(detail.placeOfBirth, contains('Boston'));
+      expect(detail.profileUrl, contains('/norton.jpg'));
+      expect(detail.knownFor, hasLength(3));
+      expect(detail.knownFor.first.title, 'Fight Club');
+      expect(detail.knownFor.first.characterName, 'The Narrator');
+      expect(detail.knownFor.first.year, 1999);
+      expect(detail.knownFor.last.mediaType, 'tv');
+    });
+
+    test('limits known-for credits to five entries', () async {
+      final manyCredits = Map<String, dynamic>.from(personFixture);
+      manyCredits['combined_credits'] = {
+        'cast': List.generate(
+          8,
+          (index) => {
+            'media_type': 'movie',
+            'title': 'Title $index',
+            'character': 'Role $index',
+            'release_date': '200${index % 10}-01-01',
+            'popularity': index.toDouble(),
+          },
+        ),
+      };
+
+      when(() => client.call(any())).thenAnswer(
+        (_) async => manyCredits,
+      );
+
+      final result = await service.fetchPersonDetail(819);
+
+      expect((result as Success<PersonDetail>).data.knownFor, hasLength(5));
+      expect(
+        (result as Success<PersonDetail>).data.knownFor.first.title,
+        'Title 7',
+      );
     });
   });
 }
