@@ -13,6 +13,8 @@ import 'package:storypilot/ui/scene/bloc/scene_event.dart';
 import 'package:storypilot/ui/scene/bloc/scene_state.dart';
 import 'package:storypilot/utils/brief_characters.dart';
 import 'package:storypilot/utils/bloc_debounce.dart';
+import 'package:storypilot/utils/preprocessed_characters.dart';
+import 'package:storypilot/utils/scene_breakdown_resolver.dart';
 
 class SceneBloc extends Bloc<SceneEvent, SceneState> {
   SceneBloc(
@@ -40,6 +42,7 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> {
   final Duration _preprocessingTimeout;
 
   _PrepareParams? _lastPrepareParams;
+  int _contextRequestId = 0;
 
   Future<void> _onStarted(
     SceneStarted event,
@@ -196,7 +199,11 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> {
       switch (result) {
         case Success(:final data):
           if (data.isReady) {
-            _session.setDurationMs(data.durationMs!);
+            final breakdown = data.breakdown;
+            if (breakdown != null) {
+              _session.setDurationMs(breakdown.durationMs);
+              _session.setTitleBreakdown(breakdown);
+            }
             emit(const SceneAwaitingTimestamp());
             return;
           }
@@ -225,9 +232,35 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> {
       return;
     }
 
-    emit(const SceneLoading());
-    final mediaType = detail.summary.mediaType;
+    final breakdown = _session.titleBreakdown;
     final cast = _session.sceneCast;
+    final requestId = ++_contextRequestId;
+
+    if (breakdown != null && breakdown.hasScenes) {
+      final segment = resolveSceneAtTimestamp(breakdown.scenes, timestampMs);
+      final preprocessedSummary = segment?.displaySummary ?? '';
+      final characters = segment == null
+          ? const <SceneCharacter>[]
+          : resolvePreprocessedCharacters(segment.characters, cast);
+
+      emit(
+        SceneLoaded(
+          timestampMs: timestampMs,
+          context: _placeholderContext(
+            timestampMs: timestampMs,
+            titleLabel: detail.summary.displayLabel,
+          ),
+          characters: characters,
+          preprocessedSummary: preprocessedSummary,
+          summary: preprocessedSummary.isEmpty ? null : preprocessedSummary,
+          isBriefLoading: true,
+        ),
+      );
+    } else {
+      emit(const SceneLoading());
+    }
+
+    final mediaType = detail.summary.mediaType;
     final result = await _repository.getContext(
       tmdbId: detail.summary.id,
       mediaType: mediaType,
@@ -236,28 +269,73 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> {
       titleLabel: detail.summary.displayLabel,
       imdbId: detail.imdbId,
     );
+
+    if (requestId != _contextRequestId) {
+      return;
+    }
+
     switch (result) {
       case Success(:final data):
         _session.setSceneContext(data.context);
         final brief = data.brief;
+        final currentState = state;
+        final fallbackSummary = currentState is SceneLoaded
+            ? currentState.preprocessedSummary
+            : null;
         final characters = brief != null
             ? resolveBriefCharacters(brief.presentCharacterNames, cast)
-            : <SceneCharacter>[];
+            : (currentState is SceneLoaded
+                ? currentState.characters
+                : <SceneCharacter>[]);
+        final briefSummary = brief?.summary.trim();
         emit(
           SceneLoaded(
+            timestampMs: timestampMs,
             context: data.context,
             characters: characters,
-            summary: brief?.summary,
+            preprocessedSummary: fallbackSummary,
+            summary: briefSummary != null && briefSummary.isNotEmpty
+                ? briefSummary
+                : fallbackSummary,
             questions: brief?.questions ?? const [],
             briefUsage: brief?.usage,
             briefError: brief == null || (brief.summary.isEmpty)
-                ? 'No se pudo generar el resumen automático. Puedes preguntar abajo.'
+                ? (fallbackSummary == null || fallbackSummary.isEmpty
+                    ? 'No se pudo generar el resumen automático. Puedes preguntar abajo.'
+                    : null)
                 : null,
+            isBriefLoading: false,
           ),
         );
       case Error(:final failure):
+        if (breakdown != null && breakdown.hasScenes) {
+          final currentState = state;
+          if (currentState is SceneLoaded) {
+            emit(
+              currentState.copyWithBriefFinished(
+                briefError: failure.message,
+              ),
+            );
+            return;
+          }
+        }
         emit(SceneFailure(failure));
     }
+  }
+
+  SceneContext _placeholderContext({
+    required int timestampMs,
+    required String? titleLabel,
+  }) {
+    return SceneContext(
+      timestampMs: timestampMs,
+      sceneBeforeSeconds: 120,
+      sceneAfterSeconds: 30,
+      dialogueText: '',
+      askDialogueText: '',
+      priorDialogueText: '',
+      titleLabel: titleLabel,
+    );
   }
 
   Future<void> _loadSceneCast({
@@ -287,4 +365,20 @@ class _PrepareParams {
   final int tmdbId;
   final MediaType mediaType;
   final TvEpisodeSelection? episode;
+}
+
+extension on SceneLoaded {
+  SceneLoaded copyWithBriefFinished({String? briefError}) {
+    return SceneLoaded(
+      timestampMs: timestampMs,
+      context: context,
+      characters: characters,
+      summary: summary,
+      preprocessedSummary: preprocessedSummary,
+      questions: questions,
+      briefUsage: briefUsage,
+      briefError: briefError ?? this.briefError,
+      isBriefLoading: false,
+    );
+  }
 }

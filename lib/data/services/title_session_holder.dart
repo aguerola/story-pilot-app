@@ -2,6 +2,7 @@ import 'package:storypilot/domain/models/cast_member.dart';
 import 'package:storypilot/domain/models/media_type.dart';
 import 'package:storypilot/domain/models/scene_context.dart';
 import 'package:storypilot/domain/models/title_detail.dart';
+import 'package:storypilot/domain/models/scene_breakdown.dart';
 import 'package:storypilot/domain/models/tv_episode_selection.dart';
 
 class TitleSessionHolder {
@@ -9,6 +10,7 @@ class TitleSessionHolder {
   SceneContext? sceneContext;
   TvEpisodeSelection? selectedEpisode;
   int? durationMs;
+  TitleBreakdown? titleBreakdown;
 
   List<CastMember> get cast => titleDetail?.cast ?? const [];
 
@@ -37,10 +39,15 @@ class TitleSessionHolder {
     durationMs = value;
   }
 
+  void setTitleBreakdown(TitleBreakdown? breakdown) {
+    titleBreakdown = breakdown;
+  }
+
   void clearPlaybackState() {
     durationMs = null;
     sceneContext = null;
     sceneCast = const [];
+    titleBreakdown = null;
   }
 
   void clear() {
@@ -49,6 +56,7 @@ class TitleSessionHolder {
     selectedEpisode = null;
     durationMs = null;
     sceneCast = const [];
+    titleBreakdown = null;
   }
 
   String titleKey(int id, MediaType type) => '${type.name}_$id';

@@ -197,11 +197,15 @@ class _SuggestedQuestions extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final sceneState = context.watch<SceneBloc>().state;
-    final isLoadingBrief = sceneState is SceneLoading;
+    final isLoadingBrief =
+        sceneState is SceneLoaded && sceneState.isBriefLoading;
     final questions = sceneState is SceneLoaded &&
+            !sceneState.isBriefLoading &&
             sceneState.questions.isNotEmpty
         ? sceneState.questions
-        : _fallbackSuggestedQuestions;
+        : (sceneState is SceneLoaded && !sceneState.isBriefLoading
+            ? _fallbackSuggestedQuestions
+            : const <String>[]);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -226,7 +230,7 @@ class _SuggestedQuestions extends StatelessWidget {
               ],
             ),
           )
-        else
+        else if (questions.isNotEmpty)
           Wrap(
             spacing: 8,
             runSpacing: 8,

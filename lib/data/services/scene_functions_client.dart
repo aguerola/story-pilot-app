@@ -4,6 +4,7 @@ import 'package:storypilot/domain/models/ai_usage.dart';
 import 'package:storypilot/domain/models/media_type.dart';
 import 'package:storypilot/domain/models/scene_brief.dart';
 import 'package:storypilot/domain/models/scene_context.dart';
+import 'package:storypilot/domain/models/scene_breakdown.dart';
 import 'package:storypilot/domain/models/title_preprocessing.dart';
 import 'package:storypilot/domain/models/tv_episode_selection.dart';
 
@@ -129,11 +130,7 @@ class FirebaseSceneFunctionsClient implements SceneFunctionsClient {
     final status = data['status'] as String?;
     if (status == 'ready') {
       return TitlePreprocessingResult.ready(
-        durationMs: data['durationMs'] as int? ?? 0,
-        titleLabel: data['titleLabel'] as String? ?? '',
-        sceneCount: data['sceneCount'] as int? ?? 0,
-        analysisVersion: data['analysisVersion'] as int? ?? 0,
-        generatedAt: data['generatedAt'] as int? ?? 0,
+        breakdown: TitleBreakdown.fromPreprocessingJson(data),
       );
     }
     return const TitlePreprocessingResult.pending();

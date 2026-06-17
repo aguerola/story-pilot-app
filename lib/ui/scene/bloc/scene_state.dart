@@ -31,29 +31,45 @@ final class SceneAwaitingEpisode extends SceneState {
 
 final class SceneLoaded extends SceneState {
   const SceneLoaded({
+    required this.timestampMs,
     required this.context,
     required this.characters,
     this.summary,
+    this.preprocessedSummary,
     this.questions = const [],
     this.briefUsage,
     this.briefError,
+    this.isBriefLoading = false,
   });
 
+  final int timestampMs;
   final SceneContext context;
   final List<SceneCharacter> characters;
   final String? summary;
+  final String? preprocessedSummary;
   final List<String> questions;
   final AiUsage? briefUsage;
   final String? briefError;
+  final bool isBriefLoading;
+
+  String get displaySummary =>
+      summary?.trim().isNotEmpty == true
+          ? summary!.trim()
+          : (preprocessedSummary ?? '');
+
+  bool get isContextReady => !isBriefLoading;
 
   @override
   List<Object?> get props => [
+        timestampMs,
         context,
         characters,
         summary,
+        preprocessedSummary,
         questions,
         briefUsage,
         briefError,
+        isBriefLoading,
       ];
 }
 

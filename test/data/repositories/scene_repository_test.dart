@@ -8,6 +8,7 @@ import 'package:storypilot/domain/models/media_type.dart';
 import 'package:storypilot/domain/models/scene_brief.dart';
 import 'package:storypilot/domain/models/scene_context.dart';
 import 'package:storypilot/domain/models/dialogue_line.dart';
+import 'package:storypilot/domain/models/scene_breakdown.dart';
 import 'package:storypilot/domain/models/title_preprocessing.dart';
 import 'package:storypilot/domain/result.dart';
 
@@ -153,12 +154,22 @@ void main() {
         episode: any(named: 'episode'),
       ),
     ).thenAnswer(
-      (_) async => const TitlePreprocessingResult.ready(
-        durationMs: 7200000,
-        titleLabel: 'Matrix',
-        sceneCount: 5,
-        analysisVersion: 3,
-        generatedAt: 123,
+      (_) async => TitlePreprocessingResult.ready(
+        breakdown: TitleBreakdown(
+          durationMs: 7200000,
+          titleLabel: 'Matrix',
+          scenes: const [
+            SceneSegment(
+              startMs: 0,
+              endMs: 60_000,
+              summary: 'Opening',
+              detailedSummary: 'Neo wakes up.',
+              characters: ['Neo'],
+            ),
+          ],
+          analysisVersion: 3,
+          generatedAt: 123,
+        ),
       ),
     );
 
@@ -171,7 +182,8 @@ void main() {
     final data = (result as Success<TitlePreprocessingResult>).data;
     expect(data.isReady, isTrue);
     expect(data.durationMs, 7200000);
-    expect(data.sceneCount, 5);
+    expect(data.breakdown?.scenes.length, 1);
+    expect(data.breakdown?.scenes.first.detailedSummary, 'Neo wakes up.');
   });
 
   test('getTitlePreprocessing passes through pending status', () async {

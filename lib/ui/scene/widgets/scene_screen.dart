@@ -174,7 +174,8 @@ class _SceneViewState extends State<_SceneView> {
   @override
   Widget build(BuildContext context) {
     return BlocListener<SceneBloc, SceneState>(
-      listenWhen: (previous, current) => current is SceneLoaded,
+      listenWhen: (previous, current) =>
+          current is SceneLoaded && !current.isBriefLoading,
       listener: (context, state) {
         if (state is SceneLoaded) {
           context.read<AskBloc>().add(AskContextUpdated(state.context));
@@ -191,7 +192,8 @@ class _SceneViewState extends State<_SceneView> {
               }
             }
 
-            final askEnabled = state is SceneLoaded;
+            final askEnabled =
+                state is SceneLoaded && state.isContextReady;
             final showEpisodeSelector = _isTv &&
                 _seasons.isNotEmpty &&
                 _selectedSeason != null &&
@@ -284,12 +286,12 @@ class _SceneContextPanel extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 24),
           child: Center(child: Text(failure.message)),
         ),
-      SceneLoaded(:final summary, :final characters, :final briefUsage, :final briefError) =>
-        _SceneLoadedContent(
-          summary: summary,
-          characters: characters,
-          briefUsage: briefUsage,
-          briefError: briefError,
+      SceneLoaded loaded => _SceneLoadedContent(
+          summary: loaded.displaySummary,
+          characters: loaded.characters,
+          briefUsage: loaded.briefUsage,
+          briefError: loaded.briefError,
+          isBriefLoading: loaded.isBriefLoading,
         ),
     };
   }
@@ -403,24 +405,40 @@ class _SceneLoadedContent extends StatelessWidget {
     required this.characters,
     this.briefUsage,
     this.briefError,
+    this.isBriefLoading = false,
   });
 
   final String? summary;
   final List<SceneCharacter> characters;
   final AiUsage? briefUsage;
   final String? briefError;
+  final bool isBriefLoading;
 
   @override
   Widget build(BuildContext context) {
     final hasBrief = summary != null && summary!.isNotEmpty;
-    return _SceneBriefContent(
-      summary: hasBrief
-          ? summary!
-          : (briefError ??
-              'No se pudo generar el resumen automático. Puedes preguntar abajo.'),
-      characters: characters,
-      usage: briefUsage,
-      mutedSummary: !hasBrief,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (isBriefLoading) ...[
+          Text(
+            'Mejorando resumen…',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+          ),
+          const SizedBox(height: 8),
+        ],
+        _SceneBriefContent(
+          summary: hasBrief
+              ? summary!
+              : (briefError ??
+                  'No se pudo generar el resumen automático. Puedes preguntar abajo.'),
+          characters: characters,
+          usage: briefUsage,
+          mutedSummary: !hasBrief,
+        ),
+      ],
     );
   }
 }

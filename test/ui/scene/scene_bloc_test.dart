@@ -7,10 +7,12 @@ import 'package:storypilot/data/services/title_session_holder.dart';
 import 'package:storypilot/domain/failure.dart';
 import 'package:storypilot/domain/models/cast_member.dart';
 import 'package:storypilot/domain/models/media_type.dart';
+import 'package:storypilot/domain/models/scene_brief.dart';
 import 'package:storypilot/domain/models/scene_context.dart';
 import 'package:storypilot/domain/models/season.dart';
 import 'package:storypilot/domain/models/dialogue_line.dart';
 import 'package:storypilot/domain/models/title_detail.dart';
+import 'package:storypilot/domain/models/scene_breakdown.dart';
 import 'package:storypilot/domain/models/title_preprocessing.dart';
 import 'package:storypilot/domain/models/title_summary.dart';
 import 'package:storypilot/domain/models/tv_episode_selection.dart';
@@ -23,10 +25,58 @@ class MockSceneRepository extends Mock implements SceneRepository {}
 
 class MockTitleRepository extends Mock implements TitleRepository {}
 
-const _readyPreprocessing = TitlePreprocessingResult.ready(
+const _testBreakdown = TitleBreakdown(
   durationMs: 5000,
   titleLabel: 'Matrix',
-  sceneCount: 3,
+  scenes: [
+    SceneSegment(
+      startMs: 0,
+      endMs: 5000,
+      summary: 'Opening',
+      detailedSummary: 'Neo meets Morpheus.',
+      characters: ['Neo'],
+    ),
+  ],
+  analysisVersion: 3,
+  generatedAt: 1,
+);
+
+const _readyPreprocessing = TitlePreprocessingResult.ready(
+  breakdown: _testBreakdown,
+);
+
+const _tvBreakdown = TitleBreakdown(
+  durationMs: 3600000,
+  titleLabel: 'Breaking Bad',
+  scenes: [
+    SceneSegment(
+      startMs: 0,
+      endMs: 3600000,
+      summary: 'Episode',
+      detailedSummary: 'Walter cooks.',
+      characters: ['Walter White'],
+    ),
+  ],
+  analysisVersion: 3,
+  generatedAt: 1,
+);
+
+const _tvReadyPreprocessing = TitlePreprocessingResult.ready(
+  breakdown: _tvBreakdown,
+);
+
+const _movieBreakdown = TitleBreakdown(
+  durationMs: 7200000,
+  titleLabel: 'Breaking Bad',
+  scenes: [
+    SceneSegment(
+      startMs: 0,
+      endMs: 7200000,
+      summary: 'Movie',
+      detailedSummary: 'Inception begins.',
+      characters: ['Cobb'],
+    ),
+  ],
   analysisVersion: 3,
   generatedAt: 1,
 );
@@ -100,7 +150,54 @@ void main() {
   tearDown(() => bloc.close());
 
   blocTest<SceneBloc, SceneState>(
-    'emits loaded when timestamp changes',
+    'shows preprocessed scene instantly then brief when timestamp changes',
+    build: () {
+      session.setTitleBreakdown(_testBreakdown);
+      when(
+        () => repository.getContext(
+          tmdbId: 1,
+          mediaType: MediaType.movie,
+          timestampMs: 2000,
+          episode: any(named: 'episode'),
+          titleLabel: 'Matrix',
+          imdbId: any(named: 'imdbId'),
+        ),
+      ).thenAnswer(
+        (_) async => const Success(
+          SceneContextWithBrief(
+            context: context,
+            brief: SceneBrief(
+              summary: 'Brief from Gemini.',
+              presentCharacterNames: ['Neo'],
+              questions: ['¿Qué pasa?'],
+            ),
+          ),
+        ),
+      );
+      return bloc;
+    },
+    act: (bloc) => bloc.add(const TimestampChanged(2000)),
+    wait: const Duration(milliseconds: 500),
+    expect: () => [
+      isA<SceneLoaded>()
+          .having((state) => state.isBriefLoading, 'isBriefLoading', true)
+          .having(
+            (state) => state.displaySummary,
+            'displaySummary',
+            'Neo meets Morpheus.',
+          ),
+      isA<SceneLoaded>()
+          .having((state) => state.isBriefLoading, 'isBriefLoading', false)
+          .having(
+            (state) => state.summary,
+            'summary',
+            'Brief from Gemini.',
+          ),
+    ],
+  );
+
+  blocTest<SceneBloc, SceneState>(
+    'falls back to loading when breakdown is unavailable',
     build: () {
       when(
         () => repository.getContext(
@@ -119,7 +216,7 @@ void main() {
       return bloc;
     },
     act: (bloc) => bloc.add(const TimestampChanged(2000)),
-    wait: const Duration(milliseconds: 400),
+    wait: const Duration(milliseconds: 500),
     expect: () => [
       const SceneLoading(),
       isA<SceneLoaded>(),
@@ -370,17 +467,7 @@ void main() {
           titleLabel: 'Breaking Bad',
           imdbId: any(named: 'imdbId'),
         ),
-      ).thenAnswer(
-        (_) async => const Success(
-          TitlePreprocessingResult.ready(
-            durationMs: 3600000,
-            titleLabel: 'Breaking Bad',
-            sceneCount: 2,
-            analysisVersion: 3,
-            generatedAt: 1,
-          ),
-        ),
-      );
+      ).thenAnswer((_) async => const Success(_tvReadyPreprocessing));
       return SceneBloc(
         repository,
         titles,
@@ -525,17 +612,7 @@ void main() {
           titleLabel: 'Breaking Bad',
           imdbId: any(named: 'imdbId'),
         ),
-      ).thenAnswer(
-        (_) async => const Success(
-          TitlePreprocessingResult.ready(
-            durationMs: 3600000,
-            titleLabel: 'Breaking Bad',
-            sceneCount: 2,
-            analysisVersion: 3,
-            generatedAt: 1,
-          ),
-        ),
-      );
+      ).thenAnswer((_) async => const Success(_tvReadyPreprocessing));
       return SceneBloc(
         repository,
         titles,
@@ -597,14 +674,8 @@ void main() {
           imdbId: any(named: 'imdbId'),
         ),
       ).thenAnswer(
-        (_) async => const Success(
-          TitlePreprocessingResult.ready(
-            durationMs: 7200000,
-            titleLabel: 'Breaking Bad',
-            sceneCount: 4,
-            analysisVersion: 3,
-            generatedAt: 1,
-          ),
+        (_) async => Success(
+          TitlePreprocessingResult.ready(breakdown: _movieBreakdown),
         ),
       );
       return SceneBloc(
