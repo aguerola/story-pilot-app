@@ -10,6 +10,7 @@ class AiUsage extends Equatable {
     this.thoughtsTokens,
     this.totalTokens,
     this.modelId,
+    this.usedBreakdown,
   });
 
   final int? promptTokens;
@@ -17,12 +18,23 @@ class AiUsage extends Equatable {
   final int? thoughtsTokens;
   final int? totalTokens;
   final String? modelId;
+  /// Whether the server used AI scene-breakdown context (vs subtitles only).
+  final bool? usedBreakdown;
 
   bool get hasTokens =>
       promptTokens != null ||
       responseTokens != null ||
       thoughtsTokens != null ||
       totalTokens != null;
+
+  bool get hasDebugInfo => hasTokens || usedBreakdown != null;
+
+  String? get contextLabel {
+    if (usedBreakdown == null) return null;
+    return usedBreakdown!
+        ? 'Contexto: preprocesado (breakdown)'
+        : 'Contexto: subtítulos';
+  }
 
   String get tokenLabel {
     final parts = <String>[];
@@ -53,6 +65,12 @@ class AiUsage extends Equatable {
   }
 
   @override
-  List<Object?> get props =>
-      [promptTokens, responseTokens, thoughtsTokens, totalTokens, modelId];
+  List<Object?> get props => [
+        promptTokens,
+        responseTokens,
+        thoughtsTokens,
+        totalTokens,
+        modelId,
+        usedBreakdown,
+      ];
 }

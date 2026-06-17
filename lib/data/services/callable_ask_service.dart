@@ -74,6 +74,8 @@ class CallableAskService implements AskService {
       return const Error(ServerFailure('Empty response from AI'));
     }
 
+    final usedBreakdown = data['usedBreakdown'];
+
     return Success(
       SceneAnswer(
         question: question,
@@ -84,6 +86,7 @@ class CallableAskService implements AskService {
         thoughtsTokens: data['thoughtsTokens'] as int?,
         totalTokens: data['totalTokens'] as int?,
         modelId: (data['modelId'] as String?) ?? model.id,
+        usedBreakdown: usedBreakdown is bool ? usedBreakdown : null,
       ),
     );
   }

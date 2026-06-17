@@ -150,13 +150,15 @@ class FirebaseSceneFunctionsClient implements SceneFunctionsClient {
     final hasUsage = data['promptTokens'] != null ||
         data['responseTokens'] != null ||
         data['totalTokens'] != null;
-    if (!hasUsage) return null;
+    final usedBreakdown = data['usedBreakdown'];
+    if (!hasUsage && usedBreakdown is! bool) return null;
     return AiUsage(
       promptTokens: data['promptTokens'] as int?,
       responseTokens: data['responseTokens'] as int?,
       thoughtsTokens: data['thoughtsTokens'] as int?,
       totalTokens: data['totalTokens'] as int?,
       modelId: (data['modelId'] as String?) ?? modelId,
+      usedBreakdown: usedBreakdown is bool ? usedBreakdown : null,
     );
   }
 }

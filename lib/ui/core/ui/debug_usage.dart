@@ -12,7 +12,7 @@ class DebugUsage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final usage = this.usage;
-    if (!kDebugMode || usage == null || !usage.hasTokens) {
+    if (!kDebugMode || usage == null || !usage.hasDebugInfo) {
       return const SizedBox.shrink();
     }
     final style = Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -22,10 +22,16 @@ class DebugUsage extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 12),
-        Text('Tokens: ${usage.tokenLabel}', style: style),
-        if (usage.costLabel != null) ...[
+        if (usage.contextLabel != null) ...[
+          Text(usage.contextLabel!, style: style),
           const SizedBox(height: 4),
-          Text('Coste estimado: ${usage.costLabel}', style: style),
+        ],
+        if (usage.hasTokens) ...[
+          Text('Tokens: ${usage.tokenLabel}', style: style),
+          if (usage.costLabel != null) ...[
+            const SizedBox(height: 4),
+            Text('Coste estimado: ${usage.costLabel}', style: style),
+          ],
         ],
       ],
     );

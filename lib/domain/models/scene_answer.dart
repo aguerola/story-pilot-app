@@ -11,6 +11,7 @@ class SceneAnswer extends Equatable {
     this.thoughtsTokens,
     this.totalTokens,
     this.modelId,
+    this.usedBreakdown,
   });
 
   final String question;
@@ -21,6 +22,7 @@ class SceneAnswer extends Equatable {
   final int? thoughtsTokens;
   final int? totalTokens;
   final String? modelId;
+  final bool? usedBreakdown;
 
   AiUsage get usage => AiUsage(
         promptTokens: promptTokens,
@@ -28,6 +30,7 @@ class SceneAnswer extends Equatable {
         thoughtsTokens: thoughtsTokens,
         totalTokens: totalTokens,
         modelId: modelId,
+        usedBreakdown: usedBreakdown,
       );
 
   bool get hasTokenUsage => usage.hasTokens;
@@ -48,5 +51,6 @@ class SceneAnswer extends Equatable {
         thoughtsTokens,
         totalTokens,
         modelId,
+        usedBreakdown,
       ];
 }
