@@ -39,6 +39,17 @@ final class EpisodeSelected extends SceneEvent {
   List<Object?> get props => [seasonNumber, episodeNumber];
 }
 
+/// Updates preprocessed scene info immediately while scrubbing the timeline.
+final class TimestampScrubbed extends SceneEvent {
+  const TimestampScrubbed(this.timestampMs);
+
+  final int timestampMs;
+
+  @override
+  List<Object?> get props => [timestampMs];
+}
+
+/// Commits the timestamp and loads AI brief + suggested questions (debounced).
 final class TimestampChanged extends SceneEvent {
   const TimestampChanged(this.timestampMs);
 

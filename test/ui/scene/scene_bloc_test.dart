@@ -150,6 +150,37 @@ void main() {
   tearDown(() => bloc.close());
 
   blocTest<SceneBloc, SceneState>(
+    'shows preprocessed scene instantly on scrub without calling getContext',
+    build: () {
+      session.setTitleBreakdown(_testBreakdown);
+      return bloc;
+    },
+    act: (bloc) => bloc.add(const TimestampScrubbed(2000)),
+    expect: () => [
+      isA<SceneLoaded>()
+          .having((state) => state.isPreview, 'isPreview', true)
+          .having((state) => state.isBriefLoading, 'isBriefLoading', false)
+          .having(
+            (state) => state.displaySummary,
+            'displaySummary',
+            'Neo meets Morpheus.',
+          ),
+    ],
+    verify: (_) {
+      verifyNever(
+        () => repository.getContext(
+          tmdbId: any(named: 'tmdbId'),
+          mediaType: any(named: 'mediaType'),
+          timestampMs: any(named: 'timestampMs'),
+          episode: any(named: 'episode'),
+          titleLabel: any(named: 'titleLabel'),
+          imdbId: any(named: 'imdbId'),
+        ),
+      );
+    },
+  );
+
+  blocTest<SceneBloc, SceneState>(
     'shows preprocessed scene instantly then brief when timestamp changes',
     build: () {
       session.setTitleBreakdown(_testBreakdown);
@@ -180,10 +211,11 @@ void main() {
     wait: const Duration(milliseconds: 500),
     expect: () => [
       isA<SceneLoaded>()
+          .having((state) => state.isPreview, 'isPreview', false)
           .having((state) => state.isBriefLoading, 'isBriefLoading', true)
           .having(
-            (state) => state.displaySummary,
-            'displaySummary',
+            (state) => state.preprocessedSummary,
+            'preprocessedSummary',
             'Neo meets Morpheus.',
           ),
       isA<SceneLoaded>()

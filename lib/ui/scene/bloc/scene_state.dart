@@ -40,6 +40,7 @@ final class SceneLoaded extends SceneState {
     this.briefUsage,
     this.briefError,
     this.isBriefLoading = false,
+    this.isPreview = false,
   });
 
   final int timestampMs;
@@ -51,13 +52,14 @@ final class SceneLoaded extends SceneState {
   final AiUsage? briefUsage;
   final String? briefError;
   final bool isBriefLoading;
+  final bool isPreview;
 
   String get displaySummary =>
-      summary?.trim().isNotEmpty == true
-          ? summary!.trim()
-          : (preprocessedSummary ?? '');
+      isPreview || summary == null || summary!.trim().isEmpty
+          ? (preprocessedSummary ?? '')
+          : summary!.trim();
 
-  bool get isContextReady => !isBriefLoading;
+  bool get isContextReady => !isBriefLoading && !isPreview;
 
   @override
   List<Object?> get props => [
@@ -70,6 +72,7 @@ final class SceneLoaded extends SceneState {
         briefUsage,
         briefError,
         isBriefLoading,
+        isPreview,
       ];
 }
 

@@ -200,10 +200,10 @@ class _SuggestedQuestions extends StatelessWidget {
     final isLoadingBrief =
         sceneState is SceneLoaded && sceneState.isBriefLoading;
     final questions = sceneState is SceneLoaded &&
-            !sceneState.isBriefLoading &&
+            sceneState.isContextReady &&
             sceneState.questions.isNotEmpty
         ? sceneState.questions
-        : (sceneState is SceneLoaded && !sceneState.isBriefLoading
+        : (sceneState is SceneLoaded && sceneState.isContextReady
             ? _fallbackSuggestedQuestions
             : const <String>[]);
 

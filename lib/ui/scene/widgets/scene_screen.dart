@@ -151,6 +151,7 @@ class _SceneViewState extends State<_SceneView> {
       _sliderValue = value;
       _timeController.text = formatMsToTimestamp(value.toInt());
     });
+    context.read<SceneBloc>().add(TimestampScrubbed(value.toInt()));
   }
 
   void _onSliderReleased(double value) {
@@ -164,6 +165,7 @@ class _SceneViewState extends State<_SceneView> {
         _sliderValue = ms.clamp(0, _maxMs).toDouble();
         _timeController.text = formatMsToTimestamp(_sliderValue.toInt());
       });
+      context.read<SceneBloc>().add(TimestampScrubbed(_sliderValue.toInt()));
       context.read<SceneBloc>().add(TimestampChanged(_sliderValue.toInt()));
     } catch (_) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -176,7 +178,7 @@ class _SceneViewState extends State<_SceneView> {
   Widget build(BuildContext context) {
     return BlocListener<SceneBloc, SceneState>(
       listenWhen: (previous, current) =>
-          current is SceneLoaded && !current.isBriefLoading,
+          current is SceneLoaded && current.isContextReady,
       listener: (context, state) {
         if (state is SceneLoaded) {
           context.read<AskBloc>().add(AskContextUpdated(state.context));

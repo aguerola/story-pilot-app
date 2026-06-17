@@ -29,6 +29,7 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> {
     on<SceneStarted>(_onStarted);
     on<EpisodeSelected>(_onEpisodeSelected);
     on<PreprocessingRetry>(_onPreprocessingRetry);
+    on<TimestampScrubbed>(_onTimestampScrubbed);
     on<TimestampChanged>(
       _onTimestampChanged,
       transformer: debounce(const Duration(milliseconds: 400)),
@@ -100,6 +101,14 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> {
       episode: params.episode,
       emit: emit,
     );
+  }
+
+  void _onTimestampScrubbed(
+    TimestampScrubbed event,
+    Emitter<SceneState> emit,
+  ) {
+    _contextRequestId++;
+    _emitPreprocessedPreview(event.timestampMs, emit);
   }
 
   Future<void> _onTimestampChanged(
@@ -225,6 +234,48 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> {
     );
   }
 
+  void _emitPreprocessedPreview(int timestampMs, Emitter<SceneState> emit) {
+    final detail = _session.titleDetail;
+    if (detail == null) {
+      emit(const SceneFailure(NotFoundFailure('Title not available')));
+      return;
+    }
+
+    final breakdown = _session.titleBreakdown;
+    if (breakdown == null || !breakdown.hasScenes) {
+      return;
+    }
+
+    final segment = resolveSceneAtTimestamp(breakdown.scenes, timestampMs);
+    final preprocessedSummary = segment?.displaySummary ?? '';
+    final characters = segment == null
+        ? const <SceneCharacter>[]
+        : resolvePreprocessedCharacters(
+            segment.characters,
+            _session.sceneCast,
+          );
+    final previous = state;
+    final previousLoaded = previous is SceneLoaded ? previous : null;
+
+    emit(
+      SceneLoaded(
+        timestampMs: timestampMs,
+        context: previousLoaded?.context ??
+            _placeholderContext(
+              timestampMs: timestampMs,
+              titleLabel: detail.summary.displayLabel,
+            ),
+        characters: characters,
+        preprocessedSummary: preprocessedSummary,
+        summary: null,
+        questions: previousLoaded?.questions ?? const [],
+        briefUsage: previousLoaded?.briefUsage,
+        briefError: null,
+        isPreview: true,
+      ),
+    );
+  }
+
   Future<void> _loadContext(int timestampMs, Emitter<SceneState> emit) async {
     final detail = _session.titleDetail;
     if (detail == null) {
@@ -242,18 +293,24 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> {
       final characters = segment == null
           ? const <SceneCharacter>[]
           : resolvePreprocessedCharacters(segment.characters, cast);
+      final previous = state;
+      final previousLoaded = previous is SceneLoaded ? previous : null;
 
       emit(
         SceneLoaded(
           timestampMs: timestampMs,
-          context: _placeholderContext(
-            timestampMs: timestampMs,
-            titleLabel: detail.summary.displayLabel,
-          ),
+          context: previousLoaded?.context ??
+              _placeholderContext(
+                timestampMs: timestampMs,
+                titleLabel: detail.summary.displayLabel,
+              ),
           characters: characters,
           preprocessedSummary: preprocessedSummary,
-          summary: preprocessedSummary.isEmpty ? null : preprocessedSummary,
+          summary: null,
+          questions: previousLoaded?.questions ?? const [],
+          briefUsage: previousLoaded?.briefUsage,
           isBriefLoading: true,
+          isPreview: false,
         ),
       );
     } else {
@@ -305,6 +362,7 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> {
                     : null)
                 : null,
             isBriefLoading: false,
+            isPreview: false,
           ),
         );
       case Error(:final failure):
@@ -379,6 +437,7 @@ extension on SceneLoaded {
       briefUsage: briefUsage,
       briefError: briefError ?? this.briefError,
       isBriefLoading: false,
+      isPreview: false,
     );
   }
 }
