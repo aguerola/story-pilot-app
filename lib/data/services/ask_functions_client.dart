@@ -12,16 +12,6 @@ abstract class AskFunctionsClient {
     TvEpisodeSelection? episode,
     String? modelId,
   });
-
-  Future<Map<String, dynamic>> sceneBrief({
-    required int tmdbId,
-    required MediaType mediaType,
-    required int timestampMs,
-    required List<Map<String, dynamic>> cast,
-    String? titleLabel,
-    TvEpisodeSelection? episode,
-    String? modelId,
-  });
 }
 
 class FirebaseAskFunctionsClient implements AskFunctionsClient {
@@ -74,29 +64,6 @@ class FirebaseAskFunctionsClient implements AskFunctionsClient {
     payload['question'] = question;
     if (modelId != null) payload['modelId'] = modelId;
     final result = await _functions.httpsCallable('sceneAsk').call(payload);
-    return Map<String, dynamic>.from(result.data as Map);
-  }
-
-  @override
-  Future<Map<String, dynamic>> sceneBrief({
-    required int tmdbId,
-    required MediaType mediaType,
-    required int timestampMs,
-    required List<Map<String, dynamic>> cast,
-    String? titleLabel,
-    TvEpisodeSelection? episode,
-    String? modelId,
-  }) async {
-    final payload = _titlePayload(
-      tmdbId: tmdbId,
-      mediaType: mediaType,
-      timestampMs: timestampMs,
-      titleLabel: titleLabel,
-      episode: episode,
-    );
-    payload['cast'] = cast;
-    if (modelId != null) payload['modelId'] = modelId;
-    final result = await _functions.httpsCallable('sceneBrief').call(payload);
     return Map<String, dynamic>.from(result.data as Map);
   }
 }

@@ -28,7 +28,7 @@ flutter pub get
 
 ### Cloud Functions (TMDB + scene context + AI)
 
-Title search, detail, and cast call the **`tmdb`** callable on [story-pilot-server](../story-pilot-server/). Scene context, brief, and Q&A use **`getSceneContext`**, **`sceneBrief`**, and **`sceneAsk`**. API keys never leave the backend.
+Title search, detail, and cast call the **`tmdb`** callable on [story-pilot-server](../story-pilot-server/). Playback setup uses **`ensureTitlePlayback`**; scene context (with AI brief) and Q&A use **`getSceneContext`** and **`sceneAsk`**. API keys never leave the backend.
 
 For local development against the Functions emulator:
 

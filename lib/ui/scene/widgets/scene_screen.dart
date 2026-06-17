@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:skeletonizer/skeletonizer.dart';
 import 'package:storypilot/config/di.dart';
 import 'package:storypilot/data/services/title_session_holder.dart';
 import 'package:storypilot/domain/models/ai_usage.dart';
@@ -11,7 +10,6 @@ import 'package:storypilot/ui/core/ui/character_chip.dart';
 import 'package:storypilot/ui/core/ui/story_pilot_app_bar.dart';
 import 'package:storypilot/ui/core/ui/debug_usage.dart';
 import 'package:storypilot/ui/scene/bloc/scene_bloc.dart';
-import 'package:storypilot/ui/scene/bloc/scene_brief_cubit.dart';
 import 'package:storypilot/ui/scene/bloc/scene_event.dart';
 import 'package:storypilot/ui/scene/bloc/scene_state.dart';
 import 'package:storypilot/domain/models/media_type.dart';
@@ -39,7 +37,6 @@ class SceneScreen extends StatelessWidget {
           create: (_) => getIt<SceneBloc>(),
         ),
         BlocProvider(create: (_) => getIt<AskBloc>()),
-        BlocProvider(create: (_) => getIt<SceneBriefCubit>()),
       ],
       child: _SceneView(id: id, mediaType: mediaType),
     );
@@ -181,11 +178,6 @@ class _SceneViewState extends State<_SceneView> {
       listener: (context, state) {
         if (state is SceneLoaded) {
           context.read<AskBloc>().add(AskContextUpdated(state.context));
-          // Free, Lite-only brief (summary + characters + questions) shown
-          // automatically; never counts toward the daily question quota.
-          context
-              .read<SceneBriefCubit>()
-              .load(state.context, getIt<TitleSessionHolder>().sceneCast);
         }
       },
       child: Scaffold(
@@ -290,7 +282,13 @@ class _SceneContextPanel extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 24),
           child: Center(child: Text(failure.message)),
         ),
-      SceneLoaded(:final context) => _SceneLoadedContent(sceneContext: context),
+      SceneLoaded(:final summary, :final characters, :final briefUsage, :final briefError) =>
+        _SceneLoadedContent(
+          summary: summary,
+          characters: characters,
+          briefUsage: briefUsage,
+          briefError: briefError,
+        ),
     };
   }
 }
@@ -346,29 +344,29 @@ class _AwaitingTimestampPrompt extends StatelessWidget {
 }
 
 class _SceneLoadedContent extends StatelessWidget {
-  const _SceneLoadedContent({required this.sceneContext});
+  const _SceneLoadedContent({
+    required this.summary,
+    required this.characters,
+    this.briefUsage,
+    this.briefError,
+  });
 
-  final SceneContext sceneContext;
+  final String? summary;
+  final List<SceneCharacter> characters;
+  final AiUsage? briefUsage;
+  final String? briefError;
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<SceneBriefCubit, SceneBriefState>(
-      builder: (context, briefState) => switch (briefState) {
-        // While the AI is working, show a skeleton — no provisional results.
-        SceneBriefInitial() || SceneBriefLoading() => const _SceneBriefSkeleton(),
-        SceneBriefReady(:final summary, :final characters, :final usage) =>
-          _SceneBriefContent(
-            summary: summary,
-            characters: characters,
-            usage: usage,
-          ),
-        SceneBriefFailure() => _SceneBriefContent(
-            summary:
-                'No se pudo generar el resumen automático. Puedes preguntar abajo.',
-            characters: const [],
-            mutedSummary: true,
-          ),
-      },
+    final hasBrief = summary != null && summary!.isNotEmpty;
+    return _SceneBriefContent(
+      summary: hasBrief
+          ? summary!
+          : (briefError ??
+              'No se pudo generar el resumen automático. Puedes preguntar abajo.'),
+      characters: characters,
+      usage: briefUsage,
+      mutedSummary: !hasBrief,
     );
   }
 }
@@ -414,56 +412,6 @@ class _SceneBriefContent extends StatelessWidget {
         ),
         DebugUsage(usage),
       ],
-    );
-  }
-}
-
-class _SceneBriefSkeleton extends StatelessWidget {
-  const _SceneBriefSkeleton();
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Skeletonizer.zone(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Personajes en escena', style: theme.textTheme.titleMedium),
-          const SizedBox(height: 8),
-          const Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _SkeletonCharacterChip(),
-              _SkeletonCharacterChip(),
-              _SkeletonCharacterChip(),
-            ],
-          ),
-          const SizedBox(height: 20),
-          Text('Qué está pasando', style: theme.textTheme.titleMedium),
-          const SizedBox(height: 8),
-          const Bone.multiText(lines: 3),
-        ],
-      ),
-    );
-  }
-}
-
-class _SkeletonCharacterChip extends StatelessWidget {
-  const _SkeletonCharacterChip();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.fromLTRB(6, 6, 14, 6),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Bone.circle(size: 48),
-          SizedBox(width: 10),
-          Bone.text(width: 72),
-        ],
-      ),
     );
   }
 }

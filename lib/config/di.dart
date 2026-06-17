@@ -20,7 +20,6 @@ import 'package:storypilot/ui/home/bloc/home_bloc.dart';
 import 'package:storypilot/ui/auth/bloc/auth_bloc.dart';
 import 'package:storypilot/ui/auth/bloc/auth_event.dart';
 import 'package:storypilot/ui/scene/bloc/scene_bloc.dart';
-import 'package:storypilot/ui/scene/bloc/scene_brief_cubit.dart';
 import 'package:storypilot/ui/search/bloc/search_bloc.dart';
 import 'package:storypilot/ui/title_detail/bloc/title_detail_bloc.dart';
 
@@ -91,7 +90,6 @@ Future<void> configureDependencies() async {
         getIt<TitleSessionHolder>(),
       ),
     )
-    ..registerFactory(() => SceneBriefCubit(getIt<AskRepository>()))
     ..registerFactory(
       () => AskBloc(
         getIt<AskRepository>(),

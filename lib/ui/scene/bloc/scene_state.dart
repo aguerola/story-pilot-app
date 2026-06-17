@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:storypilot/domain/failure.dart';
+import 'package:storypilot/domain/models/ai_usage.dart';
 import 'package:storypilot/domain/models/scene_context.dart';
 
 sealed class SceneState extends Equatable {
@@ -29,12 +30,31 @@ final class SceneAwaitingEpisode extends SceneState {
 }
 
 final class SceneLoaded extends SceneState {
-  const SceneLoaded(this.context);
+  const SceneLoaded({
+    required this.context,
+    required this.characters,
+    this.summary,
+    this.questions = const [],
+    this.briefUsage,
+    this.briefError,
+  });
 
   final SceneContext context;
+  final List<SceneCharacter> characters;
+  final String? summary;
+  final List<String> questions;
+  final AiUsage? briefUsage;
+  final String? briefError;
 
   @override
-  List<Object?> get props => [context];
+  List<Object?> get props => [
+        context,
+        characters,
+        summary,
+        questions,
+        briefUsage,
+        briefError,
+      ];
 }
 
 final class SceneFailure extends SceneState {

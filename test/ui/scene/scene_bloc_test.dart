@@ -91,10 +91,16 @@ void main() {
           tmdbId: 1,
           mediaType: MediaType.movie,
           timestampMs: 2000,
+          cast: any(named: 'cast'),
           episode: any(named: 'episode'),
           titleLabel: 'Matrix',
+          imdbId: any(named: 'imdbId'),
         ),
-      ).thenAnswer((_) async => const Success(context));
+      ).thenAnswer(
+        (_) async => const Success(
+          SceneContextWithBrief(context: context),
+        ),
+      );
       return bloc;
     },
     act: (bloc) => bloc.add(const TimestampChanged(2000)),
@@ -109,7 +115,7 @@ void main() {
     'prepares scene then awaits a timestamp instead of loading 0',
     build: () {
       when(
-        () => repository.prepareScene(
+        () => repository.ensureTitlePlayback(
           tmdbId: 1,
           mediaType: MediaType.movie,
           episode: any(named: 'episode'),
@@ -131,7 +137,7 @@ void main() {
     'emits failure when prepare fails',
     build: () {
       when(
-        () => repository.prepareScene(
+        () => repository.ensureTitlePlayback(
           tmdbId: 1,
           mediaType: MediaType.movie,
           episode: any(named: 'episode'),
@@ -206,7 +212,7 @@ void main() {
         )
         ..durationMs = null;
       when(
-        () => repository.prepareScene(
+        () => repository.ensureTitlePlayback(
           tmdbId: 10,
           mediaType: MediaType.tv,
           episode: const TvEpisodeSelection(
@@ -280,7 +286,7 @@ void main() {
         ),
       ).thenAnswer((_) async => const Success(episodeCast));
       when(
-        () => repository.prepareScene(
+        () => repository.ensureTitlePlayback(
           tmdbId: 10,
           mediaType: MediaType.tv,
           episode: const TvEpisodeSelection(
@@ -337,7 +343,7 @@ void main() {
         )
         ..durationMs = null;
       when(
-        () => repository.prepareScene(
+        () => repository.ensureTitlePlayback(
           tmdbId: 27205,
           mediaType: MediaType.movie,
           episode: null,

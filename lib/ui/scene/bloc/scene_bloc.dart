@@ -5,11 +5,13 @@ import 'package:storypilot/data/repositories/title_repository.dart';
 import 'package:storypilot/data/services/title_session_holder.dart';
 import 'package:storypilot/domain/failure.dart';
 import 'package:storypilot/domain/models/media_type.dart';
+import 'package:storypilot/domain/models/scene_context.dart';
 import 'package:storypilot/domain/models/title_detail.dart';
 import 'package:storypilot/domain/models/tv_episode_selection.dart';
 import 'package:storypilot/domain/result.dart';
 import 'package:storypilot/ui/scene/bloc/scene_event.dart';
 import 'package:storypilot/ui/scene/bloc/scene_state.dart';
+import 'package:storypilot/utils/brief_characters.dart';
 import 'package:storypilot/utils/bloc_debounce.dart';
 
 class SceneBloc extends Bloc<SceneEvent, SceneState> {
@@ -40,7 +42,7 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> {
     if (episode != null) {
       _session.setSelectedEpisode(episode);
     }
-    await _prepareScene(
+    await _ensureTitlePlayback(
       tmdbId: event.tmdbId,
       mediaType: mediaType,
       episode: episode,
@@ -60,7 +62,7 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> {
     );
     _session.setSelectedEpisode(episode);
     _session.clearPlaybackState();
-    await _prepareScene(
+    await _ensureTitlePlayback(
       tmdbId: _session.titleDetail?.summary.id ?? 0,
       mediaType: mediaType,
       episode: episode,
@@ -94,7 +96,7 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> {
     return _session.selectedEpisode;
   }
 
-  Future<void> _prepareScene({
+  Future<void> _ensureTitlePlayback({
     required int tmdbId,
     required MediaType mediaType,
     required TvEpisodeSelection? episode,
@@ -110,14 +112,14 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> {
 
     await _loadSceneCast(detail: detail, episode: episode);
 
-    final prepareResult = await _repository.prepareScene(
+    final playbackResult = await _repository.ensureTitlePlayback(
       tmdbId: tmdbId,
       mediaType: mediaType,
       episode: episode,
       titleLabel: _session.titleDetail?.summary.displayLabel,
       imdbId: _session.titleDetail?.imdbId,
     );
-    switch (prepareResult) {
+    switch (playbackResult) {
       case Success(:final data):
         _session.setDurationMs(data);
       case Error(:final failure):
@@ -137,18 +139,35 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> {
 
     emit(const SceneLoading());
     final mediaType = detail.summary.mediaType;
+    final cast = _session.sceneCast;
     final result = await _repository.getContext(
       tmdbId: detail.summary.id,
       mediaType: mediaType,
       timestampMs: timestampMs,
+      cast: cast,
       episode: mediaType == MediaType.tv ? _session.selectedEpisode : null,
       titleLabel: detail.summary.displayLabel,
       imdbId: detail.imdbId,
     );
     switch (result) {
       case Success(:final data):
-        _session.setSceneContext(data);
-        emit(SceneLoaded(data));
+        _session.setSceneContext(data.context);
+        final brief = data.brief;
+        final characters = brief != null
+            ? resolveBriefCharacters(brief.presentCharacterNames, cast)
+            : <SceneCharacter>[];
+        emit(
+          SceneLoaded(
+            context: data.context,
+            characters: characters,
+            summary: brief?.summary,
+            questions: brief?.questions ?? const [],
+            briefUsage: brief?.usage,
+            briefError: brief == null || (brief.summary.isEmpty)
+                ? 'No se pudo generar el resumen automático. Puedes preguntar abajo.'
+                : null,
+          ),
+        );
       case Error(:final failure):
         emit(SceneFailure(failure));
     }

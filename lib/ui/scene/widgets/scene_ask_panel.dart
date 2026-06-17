@@ -11,7 +11,8 @@ import 'package:storypilot/ui/ask/bloc/ask_event.dart';
 import 'package:storypilot/ui/ask/bloc/ask_state.dart';
 import 'package:storypilot/ui/auth/bloc/auth_bloc.dart';
 import 'package:storypilot/ui/auth/bloc/auth_state.dart';
-import 'package:storypilot/ui/scene/bloc/scene_brief_cubit.dart';
+import 'package:storypilot/ui/scene/bloc/scene_bloc.dart';
+import 'package:storypilot/ui/scene/bloc/scene_state.dart';
 
 const _fallbackSuggestedQuestions = [
   '¿Quién está en esta escena?',
@@ -195,12 +196,11 @@ class _SuggestedQuestions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final briefState = context.watch<SceneBriefCubit>().state;
-    final isLoadingBrief =
-        briefState is SceneBriefInitial || briefState is SceneBriefLoading;
-    final questions = briefState is SceneBriefReady &&
-            briefState.questions.isNotEmpty
-        ? briefState.questions
+    final sceneState = context.watch<SceneBloc>().state;
+    final isLoadingBrief = sceneState is SceneLoading;
+    final questions = sceneState is SceneLoaded &&
+            sceneState.questions.isNotEmpty
+        ? sceneState.questions
         : _fallbackSuggestedQuestions;
 
     return Column(

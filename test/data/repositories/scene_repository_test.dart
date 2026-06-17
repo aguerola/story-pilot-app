@@ -1,9 +1,12 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:storypilot/config/gemini_model.dart';
 import 'package:storypilot/data/repositories/scene_repository.dart';
 import 'package:storypilot/data/services/scene_functions_client.dart';
 import 'package:storypilot/domain/failure.dart';
+import 'package:storypilot/domain/models/cast_member.dart';
 import 'package:storypilot/domain/models/media_type.dart';
+import 'package:storypilot/domain/models/scene_brief.dart';
 import 'package:storypilot/domain/models/scene_context.dart';
 import 'package:storypilot/domain/models/dialogue_line.dart';
 import 'package:storypilot/domain/result.dart';
@@ -24,26 +27,38 @@ void main() {
     priorDialogueText: 'Hello',
   );
 
+  const cast = [
+    CastMember(
+      id: 1,
+      name: 'Actor',
+      characterName: 'Hero',
+      billingOrder: 0,
+    ),
+  ];
+
   setUp(() {
     client = MockSceneFunctionsClient();
     repository = SceneRepository(client);
   });
 
-  test('prepareScene returns durationMs from backend', () async {
+  setUpAll(() {
+    registerFallbackValue(GeminiModel.defaultModel);
+  });
+
+  test('ensureTitlePlayback returns durationMs from backend', () async {
     when(
-      () => client.getSceneContext(
+      () => client.ensureTitlePlayback(
         tmdbId: 1,
         mediaType: MediaType.movie,
-        timestampMs: any(named: 'timestampMs'),
         titleLabel: any(named: 'titleLabel'),
         imdbId: any(named: 'imdbId'),
         episode: any(named: 'episode'),
       ),
     ).thenAnswer(
-      (_) async => const GetSceneContextResult(durationMs: 7200000),
+      (_) async => const EnsureTitlePlaybackResult(durationMs: 7200000),
     );
 
-    final result = await repository.prepareScene(
+    final result = await repository.ensureTitlePlayback(
       tmdbId: 1,
       mediaType: MediaType.movie,
     );
@@ -52,20 +67,27 @@ void main() {
     expect((result as Success<int>).data, 7200000);
   });
 
-  test('getContext returns parsed SceneContext', () async {
+  test('getContext returns parsed SceneContext and brief', () async {
     when(
       () => client.getSceneContext(
         tmdbId: 1,
         mediaType: MediaType.movie,
         timestampMs: 2000,
+        cast: cast,
         titleLabel: any(named: 'titleLabel'),
         imdbId: any(named: 'imdbId'),
         episode: any(named: 'episode'),
+        model: any(named: 'model'),
       ),
     ).thenAnswer(
       (_) async => const GetSceneContextResult(
         durationMs: 7200000,
         context: context,
+        brief: SceneBrief(
+          summary: 'Something happens.',
+          presentCharacterNames: ['Hero'],
+          questions: ['What now?'],
+        ),
       ),
     );
 
@@ -73,27 +95,29 @@ void main() {
       tmdbId: 1,
       mediaType: MediaType.movie,
       timestampMs: 2000,
+      cast: cast,
     );
 
-    expect(result, isA<Success<SceneContext>>());
-    expect((result as Success<SceneContext>).data.dialogueText, 'Hello');
+    expect(result, isA<Success<SceneContextWithBrief>>());
+    final data = (result as Success<SceneContextWithBrief>).data;
+    expect(data.context.dialogueText, 'Hello');
+    expect(data.brief?.summary, 'Something happens.');
   });
 
-  test('prepareScene fails when durationMs is zero', () async {
+  test('ensureTitlePlayback fails when durationMs is zero', () async {
     when(
-      () => client.getSceneContext(
+      () => client.ensureTitlePlayback(
         tmdbId: 1,
         mediaType: MediaType.movie,
-        timestampMs: any(named: 'timestampMs'),
         titleLabel: any(named: 'titleLabel'),
         imdbId: any(named: 'imdbId'),
         episode: any(named: 'episode'),
       ),
     ).thenAnswer(
-      (_) async => const GetSceneContextResult(durationMs: 0),
+      (_) async => const EnsureTitlePlaybackResult(durationMs: 0),
     );
 
-    final result = await repository.prepareScene(
+    final result = await repository.ensureTitlePlayback(
       tmdbId: 1,
       mediaType: MediaType.movie,
     );
@@ -105,12 +129,11 @@ void main() {
     );
   });
 
-  test('prepareScene maps missing scene data to NotFoundFailure', () async {
+  test('ensureTitlePlayback maps missing scene data to NotFoundFailure', () async {
     when(
-      () => client.getSceneContext(
+      () => client.ensureTitlePlayback(
         tmdbId: 1,
         mediaType: MediaType.movie,
-        timestampMs: any(named: 'timestampMs'),
         titleLabel: any(named: 'titleLabel'),
         imdbId: any(named: 'imdbId'),
         episode: any(named: 'episode'),
@@ -119,7 +142,7 @@ void main() {
       Exception('[firebase_functions/unavailable] Scene dialogue not available'),
     );
 
-    final result = await repository.prepareScene(
+    final result = await repository.ensureTitlePlayback(
       tmdbId: 1,
       mediaType: MediaType.movie,
     );
