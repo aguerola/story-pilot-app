@@ -1,3 +1,5 @@
+> **Migrated:** Canonical source is now [`aguerola/story-pilot`](https://github.com/aguerola/story-pilot) under [`story-pilot-app/`](https://github.com/aguerola/story-pilot/tree/develop/story-pilot-app). This repository is kept temporarily for history and will stay read-only; do not open new PRs here.
+
 # Story Pilot (Scene Context)
 
 Flutter web app for exploring movie/TV scene context: TMDB metadata, AI scene briefs, and natural-language Q&A.
